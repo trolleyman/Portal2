@@ -1,0 +1,8 @@
+[package]
+name = "Portal"
+version = "0.1.0"
+authors = ["Callum <cgtrolley@gmail.com>"]
+
+[dependencies]
+cgmath = "0.12.0"
+glutin = "0.6.2"
