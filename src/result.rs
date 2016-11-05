@@ -3,6 +3,7 @@ use std::string::ToString;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::ops::Carrier;
+use std::fmt::{self, Debug};
 
 pub struct GameResult<T>(Result<T, String>);
 
@@ -18,6 +19,12 @@ impl<T> GameResult<T> {
 			Err(e) => GameResult::err(f(e)),
 			Ok(v) => GameResult::ok(v),
 		}
+	}
+}
+
+impl<T> Debug for GameResult<T> where T: Debug {
+	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+		write!(f, "GameResult({:?})", self.0)
 	}
 }
 

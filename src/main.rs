@@ -20,6 +20,19 @@ use game::Game;
 use render::Render;
 
 pub fn main() {
+	let m = render::mesh::Mesh::from_string("\
+# test
+       #test
+v 0 0 0 #test3
+v 1 0 0
+v 0 1 0
+
+f 0 1 2 # endgfiletest".into());
+	
+	println!("{:#?}", m);
+	
+	unimplemented!();
+	
 	match run().into() {
 		Err(e) => {
 			writeln!(io::stderr(), "error: {}", e);

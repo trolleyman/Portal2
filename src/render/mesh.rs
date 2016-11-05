@@ -32,6 +32,7 @@ impl MeshBank {
 	}
 }
 
+#[derive(Debug)]
 pub struct Mesh {
 	vertices: Vec<Vec3>,
 	indices: Vec<IVec3>,
