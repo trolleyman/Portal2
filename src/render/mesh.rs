@@ -2,15 +2,12 @@ use prelude::*;
 
 use std::collections::HashMap;
 
-//use glutin::GlContext;
-
 /// Meshes are identified by their filename
 pub type MeshID = String;
 
 pub const MESHID_TEST: &'static str = "res/meshes/test.obj";
 
 pub struct MeshBank {
-	//gl: Rc<GlContext>,
 	cache: HashMap<MeshID, Mesh>,
 }
 impl MeshBank {
@@ -20,15 +17,22 @@ impl MeshBank {
 		}
 	}
 	
-	pub fn get_mesh(&mut self, id: MeshID) -> GameResult<Mesh> {
-		// TODO
-		unimplemented!()
+	/// Gets a mesh from the MeshBank
+	pub fn get_mesh<'a>(&'a mut self, id: &MeshID) -> GameResult<&'a Mesh> {
+		self.load_mesh(id)?;
+		self.cache.get(id)
+			.ok_or_else(|| Err(format!("load_mesh returned Ok, but cache does not contain mesh")))
 	}
 	
 	/// Loads a mesh into the MeshBank
-	pub fn load_mesh(&mut self) {
-		// TODO
-		unimplemented!()
+	pub fn load_mesh(&mut self, id: &MeshID) -> GameResult<()> {
+		let m = Mesh::from_file(&*id)?;
+		if let Some(v) = self.cache.insert(id, m) {
+			use std::io::{self, Write};
+			
+			writeln!(io::stderr(), "warn: mesh double load: {}", id).ok();
+		}
+		Ok(())
 	}
 }
 
@@ -48,8 +52,9 @@ impl Mesh {
 		filepath.push(filename);
 		
 		let mut s = String::new();
-		let mut f = File::open(filepath);
-		f.and_then(|mut f| f.read_to_string(&mut s)).into_game_result()?;
+		File::open(filepath)
+			.and_then(|mut f| f.read_to_string(&mut s))
+			.map_err(|e| format!("Invalid mesh file ({}): {}", e, filename))?;
 		
 		Mesh::from_string(&s).map_err(|s| format!("{}: {}", s, filename))
 	}
