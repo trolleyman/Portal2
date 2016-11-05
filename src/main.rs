@@ -1,14 +1,17 @@
 #![allow(non_snake_case)]
 #![feature(question_mark, type_ascription, slice_patterns)]
 extern crate cgmath as cg;
+#[macro_use]
 extern crate glium;
 pub use glium::glutin as glutin;
+extern crate png;
 
 pub mod prelude;
 pub mod event;
 pub mod game;
 pub mod render;
 pub mod result;
+pub mod vfs;
 pub mod world;
 
 use prelude::*;

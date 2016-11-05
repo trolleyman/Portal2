@@ -1,11 +1,14 @@
 use prelude::*;
 
+use game::GameState;
+
 use glutin::PollEventsIterator;
 use glutin::VirtualKeyCode as Key;
 use glutin::ElementState::Pressed;
 use glutin::Event;
 use glutin::MouseButton;
 
+#[derive(Debug)]
 pub enum InternalEvent {
 	/// Quits the game.
 	Quit,
@@ -20,12 +23,14 @@ pub enum InternalEvent {
 	Unfocus,
 }
 impl InternalEvent {
-	pub fn from_events(it: &mut PollEventsIterator) -> Vec<InternalEvent> {
+	pub fn from_events<I>(state: &GameState, it: &mut I) -> Vec<InternalEvent> where I: Iterator<Item=Event> {
 		let mut ret = vec![];
 		for e in it {
 			match e {
 				Event::KeyboardInput(Pressed, _, Some(key)) => {
-					key_pressed(&mut ret, key);
+					if state.focused {
+						key_pressed(&mut ret, key);
+					}
 				},
 				Event::MouseInput(Pressed, MouseButton::Left) => {
 					ret.push(InternalEvent::Focus);

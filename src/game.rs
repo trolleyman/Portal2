@@ -4,6 +4,9 @@ use std::io::prelude::*;
 use std::io;
 
 use glutin::{Window, WindowBuilder};
+use glium::backend::{Backend, Facade};
+use glium::Display;
+use glium::DisplayBuild;
 
 use event::InternalEvent;
 use render::Render;
@@ -14,19 +17,19 @@ pub struct GameState {
 	quit: bool,
 	/// Is the game focused on?
 	/// If yes, then the cursor should be reset to the middle of the window each loop.
-	focused: bool,
+	pub focused: bool,
 }
 impl Default for GameState {
 	fn default() -> GameState {
 		GameState {
 			quit: false,
-			focused: true,
+			focused: false,
 		}
 	}
 }
 
 pub struct Game {
-	win: Window,
+	win: Display,
 	ren: Render,
 	world: World,
 	state: GameState,
@@ -39,15 +42,12 @@ impl Game {
 			.with_dimensions(800, 600)
 			.with_vsync()
 			.with_visibility(false)
-			.build_strict()
-			.into_game_result()?;
-		
-		// Make window the current opengl context
-		unsafe { win.make_current().into_game_result()?; }
-		
-		// And the renderer
-		let ren = Render::new()?;
-		// Create the world
+			.build_glium()
+			.map_err(|e| format!("Window creation error: {}", e))?;
+				
+		// Make the renderer
+		let ren = Render::new(win.get_context().clone())?;
+		// And the world
 		let world = World::new()?;
 		// And the GameState
 		let state = GameState::default();
@@ -72,7 +72,7 @@ impl Game {
 	
 	pub fn run(&mut self) -> GameResult<()> {
 		// Show the window
-		self.win.show();
+		self.win.get_window().map(|w| w.show());
 		
 		while !self.state.quit {
 			// Process events
@@ -82,15 +82,18 @@ impl Game {
 			self.handle_events(es);
 			// Center the cursor if focused
 			if self.state.focused {
-				self.win.get_outer_size()
-					.map(|(w, h)| self.win.set_cursor_position(w as i32 /2, h as i32/2));
+				if let Some(win) = self.win.get_window() {
+					win.get_outer_size()
+						.map(|(w, h)| win.set_cursor_position(w as i32 / 2, h as i32 / 2));
+				}
 			}
 			
 			// Render world
+			let mut frame = self.win.draw();
 			// TODO: self.world.render(&mut self.ren);
 			
 			// Swap buffers
-			self.win.swap_buffers()
+			frame.finish()
 				.map_err(|e| writeln!(io::stderr(), "warning: swap_buffers failed: {}", e))
 				.ok();
 		}
@@ -100,7 +103,7 @@ impl Game {
 	
 	/// Process external events into internal events.
 	pub fn process_events(&mut self) -> Vec<InternalEvent> {
-		InternalEvent::from_events(&mut self.win.poll_events())
+		InternalEvent::from_events(&self.state, &mut self.win.poll_events())
 	}
 	
 	/// Handle internal events
@@ -109,6 +112,7 @@ impl Game {
 		use glutin::CursorState;
 		
 		for e in es {
+			println!("event recieved: {:?}", e);
 			match e {
 				Quit => {
 					self.state.quit = true;
@@ -117,14 +121,18 @@ impl Game {
 					self.world.move_player(v);
 				},
 				Focus => {
-					self.win.set_cursor_state(CursorState::Grab)
-						.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e))
-						.ok();
+					self.state.focused = true;
+					if let Some(win) = self.win.get_window() {
+						win.set_cursor_state(CursorState::Grab)
+							.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e)).ok();
+					}
 				},
 				Unfocus => {
-					self.win.set_cursor_state(CursorState::Normal)
-						.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e))
-						.ok();
+					self.state.focused = false;
+					if let Some(win) = self.win.get_window() {
+						win.set_cursor_state(CursorState::Normal)
+							.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e)).ok();
+					}
 				}
 			}
 		}
