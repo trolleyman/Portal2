@@ -33,7 +33,7 @@ impl Game {
 		// Initialize the window
 		let win = (WindowBuilder::new()
 			.with_title("Portal")
-			.with_dimensions(600, 800)
+			.with_dimensions(800, 600)
 			.with_vsync()
 			.with_visibility(false)
 			.build_strict()

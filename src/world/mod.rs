@@ -1,12 +1,13 @@
 use prelude::*;
 
 pub mod creator;
+pub mod entity;
 
-//use entity::Entity;
+use world::entity::Entity;
 
 pub struct World {
 	/// Entities in the world. All are static atm.
-	///entities: Vec<Entity>,
+	entities: Vec<Entity>,
 	/// Player's position in the world
 	player_pos: Vec3,
 	/// Player's x-angle (looking to the right)

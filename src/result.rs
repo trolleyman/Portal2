@@ -13,6 +13,12 @@ impl<T> GameResult<T> {
 	pub fn err<U>(v: U) -> GameResult<T> where U: ToString {
 		GameResult(Err(v.to_string()))
 	}
+	pub fn map_err<F>(self, f: F) -> GameResult<T> where F: Fn(String) -> String {
+		match self.0 {
+			Err(e) => GameResult::err(f(e)),
+			Ok(v) => GameResult::ok(v),
+		}
+	}
 }
 
 impl<T, U> From<Result<T, U>> for GameResult<T> where U: ToString {

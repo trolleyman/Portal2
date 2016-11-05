@@ -1,17 +1,15 @@
 #![allow(non_snake_case)]
-#![feature(question_mark, type_ascription, question_mark_carrier)]
+#![feature(question_mark, type_ascription, question_mark_carrier, slice_patterns)]
 extern crate cgmath as cg;
 //extern crate gl;
 extern crate glutin;
 
-mod prelude;
-mod event;
-mod entity;
-mod game;
-mod mesh;
-mod render;
-mod result;
-mod world;
+pub mod prelude;
+pub mod event;
+pub mod game;
+pub mod render;
+pub mod result;
+pub mod world;
 
 use prelude::*;
 
