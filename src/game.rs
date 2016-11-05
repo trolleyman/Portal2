@@ -1,5 +1,8 @@
 use prelude::*;
 
+use std::io::prelude::*;
+use std::io;
+
 use glutin::{Window, WindowBuilder};
 
 use event::InternalEvent;
@@ -31,15 +34,15 @@ pub struct Game {
 impl Game {
 	pub fn new() -> GameResult<Game> {
 		// Initialize the window
-		let win = (WindowBuilder::new()
+		let win = WindowBuilder::new()
 			.with_title("Portal")
 			.with_dimensions(800, 600)
 			.with_vsync()
 			.with_visibility(false)
 			.build_strict()
-			.into() : GameResult<_>)?;
+			.into_game_result()?;
 		
-		unsafe { GameResult::from(win.make_current())?; }
+		unsafe { win.make_current().into_game_result()?; }
 		
 		// And the renderer
 		let ren = Render::new()?;
@@ -63,7 +66,7 @@ impl Game {
 			game.handle_events(vec![InternalEvent::Unfocus]);
 		}
 		
-		GameResult::ok(game)
+		Ok(game)
 	}
 	
 	pub fn run(&mut self) -> GameResult<()> {
@@ -84,9 +87,14 @@ impl Game {
 			
 			// Render world
 			// TODO: self.world.render(&mut self.ren);
+			
+			// Swap buffers
+			self.win.swap_buffers()
+				.map_err(|e| writeln!(io::stderr(), "warning: swap_buffers failed: {}", e))
+				.ok();
 		}
 		
-		GameResult::ok(()).into()
+		Ok(())
 	}
 	
 	/// Process external events into internal events.
@@ -96,8 +104,6 @@ impl Game {
 	
 	/// Handle internal events
 	pub fn handle_events(&mut self, es: Vec<InternalEvent>) {
-		use std::io::prelude::*;
-		use std::io;
 		use event::InternalEvent::*;
 		use glutin::CursorState;
 		

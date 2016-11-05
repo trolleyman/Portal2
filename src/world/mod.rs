@@ -18,7 +18,7 @@ pub struct World {
 impl World {
 	pub fn new() -> GameResult<World> {
 		let w = creator::example_world();
-		GameResult::ok(w)
+		Ok(w)
 	}
 	
 	pub fn move_player(&mut self, v: Vec3) {

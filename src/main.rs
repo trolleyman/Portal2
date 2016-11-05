@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-#![feature(question_mark, type_ascription, question_mark_carrier, slice_patterns)]
+#![feature(question_mark, type_ascription, slice_patterns)]
 extern crate cgmath as cg;
 extern crate gl;
 extern crate glutin;

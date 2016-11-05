@@ -21,10 +21,13 @@ impl MeshBank {
 	}
 	
 	pub fn get_mesh(&mut self, id: MeshID) -> GameResult<Mesh> {
+		// TODO
 		unimplemented!()
 	}
 	
+	/// Loads a mesh into the MeshBank
 	pub fn load_mesh(&mut self) {
+		// TODO
 		unimplemented!()
 	}
 }
@@ -46,10 +49,7 @@ impl Mesh {
 		
 		let mut s = String::new();
 		let mut f = File::open(filepath);
-		match f.and_then(|mut f| f.read_to_string(&mut s)) {
-			Err(_) => return GameResult::err(format!("Invalid mesh file (not utf-8): `{}`", filename)),
-			_ => {},
-		}
+		f.and_then(|mut f| f.read_to_string(&mut s)).into_game_result()?;
 		
 		Mesh::from_string(&s).map_err(|s| format!("{}: {}", s, filename))
 	}
@@ -78,7 +78,7 @@ impl Mesh {
 						vertices.push(vec3(x, y, z));
 					},
 					_ => {
-						return GameResult::err(format!("Invalid mesh file (invalid command format on line {})", line_number));
+						return Err(format!("Invalid mesh file (invalid command format on line {})", line_number));
 					}
 				}
 			} else if command == "f" {
@@ -91,16 +91,16 @@ impl Mesh {
 						indices.push(vec3(i0, i1, i2));
 					},
 					_ => {
-						return GameResult::err(format!("Invalid mesh file (invalid command format on line {})", line_number));
+						return Err(format!("Invalid mesh file (invalid command format on line {})", line_number));
 					}
 				}
 			} else {
 				// Error on unknown command
-				return GameResult::err(format!("Invalid mesh file (unsupported instruction on line {}: `{}`)", line_number, command));
+				return Err(format!("Invalid mesh file (unsupported instruction on line {}: `{}`)", line_number, command));
 			}
 		}
 		
-		GameResult::ok(Mesh {
+		Ok(Mesh {
 			vertices: vertices,
 			indices: indices,
 		})
