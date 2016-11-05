@@ -5,6 +5,7 @@ use std::ops::DerefMut;
 use std::ops::Carrier;
 use std::fmt::{self, Debug};
 
+#[must_use]
 pub struct GameResult<T>(Result<T, String>);
 
 impl<T> GameResult<T> {

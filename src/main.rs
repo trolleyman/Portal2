@@ -17,12 +17,11 @@ use std::io::{self, Write};
 use std::process::exit;
 
 use game::Game;
-use render::Render;
 
 pub fn main() {
 	match run().into() {
 		Err(e) => {
-			writeln!(io::stderr(), "error: {}", e);
+			writeln!(io::stderr(), "error: {}", e).ok();
 			exit(1);
 		},
 		_ => {}

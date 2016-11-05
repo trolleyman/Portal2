@@ -1,6 +1,6 @@
 use prelude::*;
 
-use glutin::{Event, Window, WindowBuilder};
+use glutin::{Window, WindowBuilder};
 
 use event::InternalEvent;
 use render::Render;
@@ -39,7 +39,7 @@ impl Game {
 			.build_strict()
 			.into() : GameResult<_>)?;
 		
-		unsafe { win.make_current(); }
+		unsafe { GameResult::from(win.make_current())?; }
 		
 		// And the renderer
 		let ren = Render::new()?;
@@ -58,9 +58,9 @@ impl Game {
 		
 		// Handle initial events
 		if state.focused {
-			game.handle_events(vec![InternalEvent::Focus]);
+			let _ = game.handle_events(vec![InternalEvent::Focus]);
 		} else {
-			game.handle_events(vec![InternalEvent::Unfocus]);
+			let _ = game.handle_events(vec![InternalEvent::Unfocus]);
 		}
 		
 		GameResult::ok(game)

@@ -2,7 +2,7 @@ use prelude::*;
 
 use glutin::PollEventsIterator;
 use glutin::VirtualKeyCode as Key;
-use glutin::ElementState::{self, Pressed, Released};
+use glutin::ElementState::Pressed;
 use glutin::Event;
 use glutin::MouseButton;
 
