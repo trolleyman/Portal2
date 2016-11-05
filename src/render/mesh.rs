@@ -1,11 +1,8 @@
 use prelude::*;
 
-use std::rc::Rc;
 use std::collections::HashMap;
 
-use glutin::GlContext;
-
-use world::entity::Entity;
+//use glutin::GlContext;
 
 /// Meshes are identified by their filename
 pub type MeshID = String;

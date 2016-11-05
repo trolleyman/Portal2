@@ -11,7 +11,7 @@ impl Entity {
 		Entity::new_ext(pos, zero(), one(), mesh)
 	}
 	
-	pub fn new_ext(pos: Vec3, scale: Vec3, rot: Quat, mesh: MeshID) -> Entity {
+	pub fn new_ext(pos: Vec3, _scale: Vec3, _rot: Quat, mesh: MeshID) -> Entity {
 		Entity {
 			pos: pos,
 			// TODO: Calculate rotation & scaling

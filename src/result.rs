@@ -1,7 +1,5 @@
 use std::convert::{Into, From};
 use std::string::ToString;
-use std::ops::Deref;
-use std::ops::DerefMut;
 use std::ops::Carrier;
 use std::fmt::{self, Debug};
 

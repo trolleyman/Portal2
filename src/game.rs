@@ -58,9 +58,9 @@ impl Game {
 		
 		// Handle initial events
 		if state.focused {
-			let _ = game.handle_events(vec![InternalEvent::Focus]);
+			game.handle_events(vec![InternalEvent::Focus]);
 		} else {
-			let _ = game.handle_events(vec![InternalEvent::Unfocus]);
+			game.handle_events(vec![InternalEvent::Unfocus]);
 		}
 		
 		GameResult::ok(game)
@@ -96,6 +96,8 @@ impl Game {
 	
 	/// Handle internal events
 	pub fn handle_events(&mut self, es: Vec<InternalEvent>) {
+		use std::io::prelude::*;
+		use std::io;
 		use event::InternalEvent::*;
 		use glutin::CursorState;
 		
@@ -108,10 +110,14 @@ impl Game {
 					self.world.move_player(v);
 				},
 				Focus => {
-					self.win.set_cursor_state(CursorState::Grab);
+					self.win.set_cursor_state(CursorState::Grab)
+						.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e))
+						.ok();
 				},
 				Unfocus => {
-					self.win.set_cursor_state(CursorState::Normal);
+					self.win.set_cursor_state(CursorState::Normal)
+						.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e))
+						.ok();
 				}
 			}
 		}
