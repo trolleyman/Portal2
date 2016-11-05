@@ -1,6 +1,7 @@
 use prelude::*;
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 /// Meshes are identified by their filename
 pub type MeshID = String;
@@ -18,21 +19,17 @@ impl MeshBank {
 	}
 	
 	/// Gets a mesh from the MeshBank
-	pub fn get_mesh<'a>(&'a mut self, id: &MeshID) -> GameResult<&'a Mesh> {
-		self.load_mesh(id)?;
-		self.cache.get(id)
-			.ok_or_else(|| Err(format!("load_mesh returned Ok, but cache does not contain mesh")))
+	pub fn get_mesh<'a>(&'a mut self, id: MeshID) -> GameResult<&'a Mesh> {
+		// If cache doesn't exist, loads it from a file.
+		if self.cache.get(&id).is_none() {
+			self.cache.insert(id.clone(), Mesh::from_file(&id)?);
+		}
+		Ok(self.cache.get(&id).unwrap())
 	}
 	
 	/// Loads a mesh into the MeshBank
-	pub fn load_mesh(&mut self, id: &MeshID) -> GameResult<()> {
-		let m = Mesh::from_file(&*id)?;
-		if let Some(v) = self.cache.insert(id, m) {
-			use std::io::{self, Write};
-			
-			writeln!(io::stderr(), "warn: mesh double load: {}", id).ok();
-		}
-		Ok(())
+	pub fn load_mesh(&mut self, id: MeshID) -> GameResult<()> {
+		self.get_mesh(id).map(|_| ())
 	}
 }
 

@@ -3,7 +3,6 @@ use prelude::*;
 use std::io::prelude::*;
 use std::io;
 
-use gl;
 use glutin::{Window, WindowBuilder};
 
 use event::InternalEvent;
@@ -45,8 +44,6 @@ impl Game {
 		
 		// Make window the current opengl context
 		unsafe { win.make_current().into_game_result()?; }
-		// Load gl symbols
-		gl::load_with(|s| win.get_proc_address(s) as *const ::std::os::raw::c_void);
 		
 		// And the renderer
 		let ren = Render::new()?;

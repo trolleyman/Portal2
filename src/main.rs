@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 #![feature(question_mark, type_ascription, slice_patterns)]
 extern crate cgmath as cg;
-extern crate gl;
-extern crate glutin;
+extern crate glium;
+pub use glium::glutin as glutin;
 
 pub mod prelude;
 pub mod event;

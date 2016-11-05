@@ -1,6 +1,7 @@
-pub use cg::prelude::*;
-
 pub use result::{IntoGameResult, GameResult};
+
+pub use cg::prelude::*;
+pub use cg::conv::*;
 
 pub use cg::{vec2, vec3, vec4};
 pub use cg::{Vector2, Vector3, Vector4};
