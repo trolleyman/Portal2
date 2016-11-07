@@ -5,6 +5,9 @@ extern crate cgmath as cg;
 extern crate glium;
 pub use glium::glutin as glutin;
 extern crate png;
+#[macro_use]
+extern crate log;
+extern crate simplelog;
 
 pub mod prelude;
 pub mod event;
@@ -22,9 +25,14 @@ use std::process::exit;
 use game::Game;
 
 pub fn main() {
+	simplelog::SimpleLogger::init(simplelog::LogLevelFilter::Info)
+		.map_err(|e| writeln!(io::stderr(), "error: logger could not be initialized: {}", e).ok())
+		.ok();
+	info!("logger initialized.");
+	
 	match run().into() {
 		Err(e) => {
-			writeln!(io::stderr(), "error: {}", e).ok();
+			error!("{}", e);
 			exit(1);
 		},
 		_ => {}

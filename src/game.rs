@@ -94,7 +94,7 @@ impl Game {
 			
 			// Swap buffers
 			frame.finish()
-				.map_err(|e| writeln!(io::stderr(), "warning: swap_buffers failed: {}", e))
+				.map_err(|e| warn!("swap_buffers failed: {}", e))
 				.ok();
 		}
 		
@@ -112,7 +112,7 @@ impl Game {
 		use glutin::CursorState;
 		
 		for e in es {
-			println!("event recieved: {:?}", e);
+			info!("event recieved: {:?}", e);
 			match e {
 				Quit => {
 					self.state.quit = true;
@@ -124,14 +124,14 @@ impl Game {
 					self.state.focused = true;
 					if let Some(win) = self.win.get_window() {
 						win.set_cursor_state(CursorState::Grab)
-							.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e)).ok();
+							.map_err(|e| warn!("set_cursor_state failed: {}", e)).ok();
 					}
 				},
 				Unfocus => {
 					self.state.focused = false;
 					if let Some(win) = self.win.get_window() {
 						win.set_cursor_state(CursorState::Normal)
-							.map_err(|e| writeln!(io::stderr(), "warning: set_cursor_state failed: {}", e)).ok();
+							.map_err(|e| warn!("set_cursor_state failed: {}", e)).ok();
 					}
 				}
 			}
