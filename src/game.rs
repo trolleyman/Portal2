@@ -44,7 +44,7 @@ impl Game {
 			.with_visibility(false)
 			.build_glium()
 			.map_err(|e| format!("Window creation error: {}", e))?;
-				
+		
 		// Make the renderer
 		let ren = Render::new(win.get_context().clone())?;
 		// And the world
@@ -112,7 +112,7 @@ impl Game {
 		use glutin::CursorState;
 		
 		for e in es {
-			info!("event recieved: {:?}", e);
+			info!("Event recieved: {:?}", e);
 			match e {
 				Quit => {
 					self.state.quit = true;

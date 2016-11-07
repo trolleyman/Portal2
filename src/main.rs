@@ -25,10 +25,10 @@ use std::process::exit;
 use game::Game;
 
 pub fn main() {
-	simplelog::SimpleLogger::init(simplelog::LogLevelFilter::Info)
-		.map_err(|e| writeln!(io::stderr(), "error: logger could not be initialized: {}", e).ok())
+	simplelog::TermLogger::init(simplelog::LogLevelFilter::Info)
+		.map_err(|e| writeln!(io::stderr(), "Error: Logger could not be initialized: {}", e).ok())
 		.ok();
-	info!("logger initialized.");
+	info!("Logger initialized.");
 	
 	match run().into() {
 		Err(e) => {
