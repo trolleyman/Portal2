@@ -10,7 +10,8 @@ use glium::VertexBuffer;
 /// Meshes are identified by their filename
 pub type MeshID = String;
 
-pub const MESHID_TEST: &'static str = "res/meshes/test.obj";
+pub const MESH_DIR: &'static str = "res/mesh/";
+pub const MESHID_TEST: &'static str = "res/mesh/test.obj";
 
 pub struct MeshBank {
 	ctx: Rc<Context>,
@@ -18,10 +19,12 @@ pub struct MeshBank {
 }
 impl MeshBank {
 	pub fn new(ctx: Rc<Context>) -> MeshBank {
-		MeshBank {
+		let mut mb = MeshBank {
 			ctx: ctx,
 			cache: HashMap::new(),
-		}
+		};
+		mb.load_meshes();
+		mb
 	}
 	
 	/// Gets a mesh from the MeshBank
@@ -36,6 +39,38 @@ impl MeshBank {
 	/// Loads a mesh into the MeshBank
 	pub fn load_mesh(&mut self, id: MeshID) -> GameResult<()> {
 		self.get_mesh(id).map(|_| ())
+	}
+	
+	/// Loads all of the meshes in the MESH_DIR directory
+	fn load_meshes(&mut self) {
+		use std::path::PathBuf;
+		use std::fs;
+		use vfs;
+		
+		// Iterate over files in MESH_DIR
+		let dir_rel = PathBuf::from(MESH_DIR);
+		let dir = vfs::relative_to_exe(MESH_DIR);
+		let it = match fs::read_dir(&dir) {
+			Ok(it) => it,
+			Err(e) => {
+				warn!("Could not iterate over meshes directory ({}): {}", dir.display(), e);
+				return;
+			}
+		};
+		
+		// TODO: Clean up this code - ugly but works for now
+		for file in it {
+			match file {
+				Ok(f) => {
+					let id = MESH_DIR.to_string() + &f.file_name().to_string_lossy().into_owned();
+					match self.load_mesh(id.clone()) {
+						Err(e) => warn!("Could not load mesh ({}): {}", id, e),
+						_ => {}
+					}
+				},
+				_ => {} // Ignore files that return an error when iterating over them
+			}
+		}
 	}
 }
 
