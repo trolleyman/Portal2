@@ -3,8 +3,11 @@ use prelude::*;
 pub mod creator;
 pub mod entity;
 
+use glium::Frame;
+
 use world::entity::Entity;
 
+#[allow(dead_code)]
 pub struct World {
 	/// Entities in the world. All are static atm.
 	entities: Vec<Entity>,
@@ -23,5 +26,10 @@ impl World {
 	
 	pub fn move_player(&mut self, v: Vec3) {
 		self.player_pos += v;
+	}
+	
+	pub fn render(&self, _f: &mut Frame) {
+		// TODO
+		unimplemented!();
 	}
 }

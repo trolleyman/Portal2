@@ -1,12 +1,10 @@
 use prelude::*;
 
-use std::io::prelude::*;
 use std::fs::File;
-use std::path::Path;
 use std::rc::Rc;
 use std::collections::HashMap;
 
-use glium::backend::{Context, Facade};
+use glium::backend::Context;
 use glium::texture::{ClientFormat, RawImage2d, Texture2d};
 
 use vfs;
@@ -43,8 +41,8 @@ impl TextureBank {
 }
 
 fn tex_from_file(ctx: &Rc<Context>, id: &TextureID) -> GameResult<Texture2d> {
-	let path = vfs::relative_to_exe(id);
-	let mut f = File::open(&path)
+	let path = vfs::canonicalize_exe(id);
+	let f = File::open(&path)
 		.map_err(|e| format!("Invalid png file ({}): {}", e, path.display()))?;
 	
 	let mut decoder = png::Decoder::new(f);

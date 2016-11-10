@@ -1,10 +1,7 @@
 use prelude::*;
 
-use std::io::prelude::*;
-use std::io;
-
-use glutin::{Window, WindowBuilder};
-use glium::backend::{Backend, Facade};
+use glutin::WindowBuilder;
+use glium::backend::Facade;
 use glium::Display;
 use glium::DisplayBuild;
 
@@ -28,6 +25,7 @@ impl Default for GameState {
 	}
 }
 
+#[allow(dead_code)]
 pub struct Game {
 	win: Display,
 	ren: Render,
@@ -90,7 +88,7 @@ impl Game {
 			
 			// Render world
 			let mut frame = self.win.draw();
-			// TODO: self.world.render(&mut self.ren);
+			self.world.render(&mut frame);
 			
 			// Swap buffers
 			frame.finish()

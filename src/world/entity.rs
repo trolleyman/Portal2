@@ -2,6 +2,7 @@ use prelude::*;
 
 use render::mesh::MeshID;
 
+#[allow(dead_code)]
 pub struct Entity {
 	pos: Vec3,
 	mesh: MeshID,

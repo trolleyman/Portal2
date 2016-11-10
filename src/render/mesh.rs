@@ -1,7 +1,6 @@
 use prelude::*;
 
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use glium::backend::Context;
@@ -43,13 +42,11 @@ impl MeshBank {
 	
 	/// Loads all of the meshes in the MESH_DIR directory
 	fn load_meshes(&mut self) {
-		use std::path::PathBuf;
 		use std::fs;
 		use vfs;
 		
 		// Iterate over files in MESH_DIR
-		let dir_rel = PathBuf::from(MESH_DIR);
-		let dir = vfs::relative_to_exe(MESH_DIR);
+		let dir = vfs::canonicalize_exe(MESH_DIR);
 		let it = match fs::read_dir(&dir) {
 			Ok(it) => it,
 			Err(e) => {
@@ -63,6 +60,9 @@ impl MeshBank {
 			match file {
 				Ok(f) => {
 					let id = MESH_DIR.to_string() + &f.file_name().to_string_lossy().into_owned();
+					if !id.ends_with(".obj") {
+						continue;
+					}
 					match self.load_mesh(id.clone()) {
 						Err(e) => warn!("Could not load mesh ({}): {}", id, e),
 						_ => {}
@@ -87,7 +87,11 @@ pub struct Mesh {
 	vertices: VertexBuffer<Vertex>,
 }
 impl Mesh {
-	pub fn from_file(ctx: &Rc<Context>, filename: &str) -> GameResult<Mesh> {
+	pub fn from_file(_ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {
+		use render::parse::ObjFile;
+		
+		let _f = ObjFile::new(rel_path.to_string())
+			.map_err(|e| format!("Invalid mesh: {}", e));
 		unimplemented!()
 	}
 }

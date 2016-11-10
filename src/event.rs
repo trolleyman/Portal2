@@ -2,7 +2,6 @@ use prelude::*;
 
 use game::GameState;
 
-use glutin::PollEventsIterator;
 use glutin::VirtualKeyCode as Key;
 use glutin::ElementState::Pressed;
 use glutin::Event;
