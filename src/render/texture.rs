@@ -34,6 +34,7 @@ impl TextureBank {
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
 			self.cache.insert(id.clone(), tex_from_file(&self.ctx, &id)?);
+			info!("Loaded texture: {}", &id);
 		}
 		Ok(self.cache.get(&id).unwrap())
 	}
@@ -88,7 +89,7 @@ fn tex_from_file(ctx: &Rc<Context>, id: &TextureID) -> GameResult<Texture2d> {
 	let (info, mut reader) = decoder.read_info()
 		.map_err(|e| format!("Invalid png file ({}): {}", e, path.display()))?;
 	
-	let mut buf = Vec::with_capacity(info.buffer_size());
+	let mut buf = vec![0; info.buffer_size()];
 	reader.next_frame(&mut buf)
 		.map_err(|e| format!("Invalid png file ({}): {}", e, path.display()))?;
 	
