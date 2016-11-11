@@ -12,6 +12,8 @@ use png::{self, Parameter};
 
 pub type TextureID = String;
 
+pub const TEX_DIR: &'static str = "res/tex/";
+
 pub struct TextureBank {
 	ctx: Rc<Context>,
 	cache: HashMap<TextureID, Texture2d>,
@@ -19,10 +21,12 @@ pub struct TextureBank {
 
 impl TextureBank {
 	pub fn new(ctx: Rc<Context>) -> TextureBank {
-		TextureBank {
+		let mut tb = TextureBank {
 			ctx: ctx,
 			cache: HashMap::new(),
-		}
+		};
+		tb.load_textures();
+		tb
 	}
 	
 	/// Gets a teture from the TextureBank
@@ -38,6 +42,40 @@ impl TextureBank {
 	pub fn load_texture(&mut self, id: TextureID) -> GameResult<()> {
 		self.get_texture(id).map(|_| ())
 	}
+	
+	/// Loads all of the textures in the TEX_DIR directory
+	fn load_textures(&mut self) {
+		use std::fs;
+		use vfs;
+		
+		// Iterate over files in TEX_DIR
+		let dir = vfs::canonicalize_exe(TEX_DIR);
+		let it = match fs::read_dir(&dir) {
+			Ok(it) => it,
+			Err(e) => {
+				warn!("Could not iterate over textures directory ({}): {}", dir.display(), e);
+				return;
+			}
+		};
+		
+		// TODO: Clean up this code - ugly but works for now
+		for file in it {
+			match file {
+				Ok(f) => {
+					let id = TEX_DIR.to_string() + &f.file_name().to_string_lossy().into_owned();
+					if !id.ends_with(".png") {
+						continue;
+					}
+					match self.load_texture(id.clone()) {
+						Err(e) => warn!("Could not load texture ({}): {}", id, e),
+						_ => {}
+					}
+				},
+				_ => {} // Ignore files that return an error when iterating over them
+			}
+		}
+	}
+
 }
 
 fn tex_from_file(ctx: &Rc<Context>, id: &TextureID) -> GameResult<Texture2d> {
