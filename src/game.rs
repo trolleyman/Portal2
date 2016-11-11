@@ -88,7 +88,7 @@ impl Game {
 			
 			// Render world
 			let mut frame = self.win.draw();
-			self.world.render(&mut frame);
+			self.world.render(&mut self.ren, &mut frame);
 			
 			// Swap buffers
 			frame.finish()
