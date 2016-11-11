@@ -6,6 +6,8 @@ use std::rc::Rc;
 use glium::backend::Context;
 use glium::VertexBuffer;
 
+use render::Material;
+
 /// Meshes are identified by their filename
 pub type MeshID = String;
 
@@ -77,21 +79,48 @@ impl MeshBank {
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
 	pos: [Flt; 3],
-	normal: [Flt; 3],
 	uv: [Flt; 2],
+	normal: [Flt; 3],
 }
 implement_vertex!(Vertex, pos, normal, uv);
 
 #[derive(Debug)]
 pub struct Mesh {
+	material: Material,
 	vertices: VertexBuffer<Vertex>,
 }
 impl Mesh {
-	pub fn from_file(_ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {
+	pub fn from_file(ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {
 		use render::parse::ObjFile;
 		
-		let _f = ObjFile::new(rel_path.to_string())
-			.map_err(|e| format!("Invalid mesh: {}", e));
-		unimplemented!()
+		let file = ObjFile::new(rel_path.to_string())
+			.map_err(|e| format!("Invalid mesh: {}", e))?;
+		
+		let mut vertices = Vec::with_capacity(file.faces.len() * 3);
+		
+		// Change from indices to vertices
+		for face in file.faces.iter() {
+			for vertex in [face.x, face.y, face.z].into_iter() {
+				let v = Vertex {
+					pos: array3(file.vertices[vertex.x as usize]),
+					uv: array2(file.uvs[vertex.y as usize]),
+					normal: array3(file.normals[vertex.z as usize]),
+				};
+				vertices.push(v);
+			}
+		}
+		
+		// Upload vertex information to OpenGL
+		let buffer = VertexBuffer::new(ctx, &vertices)
+			.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
+		
+		let material = file.material.clone()
+			.and_then(|mat_name| file.materials.get(&mat_name).map(Material::clone))
+			.unwrap_or_else(Material::default);
+		
+		Ok(Mesh {
+			material: material,
+			vertices: buffer,
+		})
 	}
 }
