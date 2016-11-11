@@ -33,6 +33,7 @@ impl MeshBank {
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
 			self.cache.insert(id.clone(), Mesh::from_file(&self.ctx, &id)?);
+			info!("Loaded mesh: {}", &id);
 		}
 		Ok(self.cache.get(&id).unwrap())
 	}
