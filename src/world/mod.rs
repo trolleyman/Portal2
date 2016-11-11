@@ -5,6 +5,7 @@ pub mod entity;
 
 use glium::Frame;
 
+use render::Render;
 use world::entity::Entity;
 
 #[allow(dead_code)]
@@ -28,8 +29,9 @@ impl World {
 		self.player_pos += v;
 	}
 	
-	pub fn render(&self, _f: &mut Frame) {
-		// TODO
-		unimplemented!();
+	pub fn render(&self, r: &mut Render, f: &mut Frame) {
+		for e in self.entities.iter() {
+			e.render(r, f);
+		}
 	}
 }
