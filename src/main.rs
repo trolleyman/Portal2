@@ -28,6 +28,7 @@ pub fn parse_log_level() -> Option<simplelog::LogLevelFilter> {
 	use std::ascii::AsciiExt;
 	
 	let var = std::env::var("PORTAL_LOG").unwrap_or(String::new());
+	let var = var.trim();
 	     if var.eq_ignore_ascii_case("off"  ) { Some(simplelog::LogLevelFilter::Off  ) }
 	else if var.eq_ignore_ascii_case("error") { Some(simplelog::LogLevelFilter::Error) }
 	else if var.eq_ignore_ascii_case("warn" ) { Some(simplelog::LogLevelFilter::Warn ) }
