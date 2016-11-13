@@ -260,13 +260,18 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 
 fn parse_texture_id(st: &ParseState, s: &str) -> GameResult<TextureID> {
 	// s == '../img/whatever.png'
-	// p == 'C:/....../res/mesh/thing.obj/../../img/whatever.png'
-	let p = st.path.join("..").join(s);
-	p.canonicalize().map_err(|e| format!("Could not canonicalize path ({}): {}", e, p.display()))?;
-	// p == 'C:/....../res/img/whatever.png'
-	// rel_path == 'res/img/whatever.png' (hopefully)
-	let rel_path = vfs::relative_exe(&p)?;
-	Ok(rel_path.to_string_lossy().into_owned())
+	if !PathBuf::from(s).is_relative() {
+		let rel_path = vfs::relative_exe(s)?;
+		Ok(rel_path.to_string_lossy().into_owned())
+	} else {
+		// p == 'C:/....../res/mesh/thing.obj/../../img/whatever.png'
+		let p = st.path.join("..").join(s);
+		// p == 'C:/....../res/img/whatever.png'
+		p.canonicalize().map_err(|e| format!("Could not canonicalize path ({}): {}", e, p.display()))?;
+		// rel_path == 'res/img/whatever.png' (hopefully)
+		let rel_path = vfs::relative_exe(&p)?;
+		Ok(rel_path.to_string_lossy().into_owned())
+	}
 }
 
 fn parse_vec3<'a, I>(st: &ParseState, it: &mut I) -> GameResult<Vec3>
