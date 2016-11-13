@@ -159,16 +159,16 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 				f.name = Some(parse1(&state, &mut args)?);
 			},
 			"v" => {
-				let v = parseN(&state, 3, &mut args)?;
-				f.vertices.push(vec3(v[0], v[1], v[2]));
+				let v = parse_vec3(&state, &mut args)?;
+				f.vertices.push(v);
 			},
 			"vt" => {
 				let v = parseN(&state, 2, &mut args)?;
 				f.uvs.push(vec2(v[0], v[1]));
 			},
 			"vn" => {
-				let v = parseN(&state, 3, &mut args)?;
-				f.normals.push(vec3(v[0], v[1], v[2]));
+				let v = parse_vec3(&state, &mut args)?;
+				f.normals.push(v.normalize());
 			},
 			"f" => {
 				fn process_index(i: isize, l: usize) -> u32 {
