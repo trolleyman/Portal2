@@ -2,6 +2,7 @@ use prelude::*;
 
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::fmt;
 
 use glium::backend::Context;
 use glium::VertexBuffer;
@@ -77,13 +78,29 @@ impl MeshBank {
 	}
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct Vertex {
 	pos: [Flt; 3],
 	uv: [Flt; 2],
 	normal: [Flt; 3],
 }
 implement_vertex!(Vertex, pos, normal, uv);
+impl fmt::Debug for Vertex {
+	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+		let alt = f.alternate();
+		let spacing = if alt { "\n\t" } else { " " };
+		f.write_str("Vertex {")?;
+		f.write_str(spacing)?;
+		write!(f, "pos: {:?},", self.pos)?;
+		f.write_str(spacing)?;
+		write!(f, "uv: {:?},", self.uv)?;
+		f.write_str(spacing)?;
+		write!(f, "normal: {:?}", self.normal)?;
+		f.write_str(if alt { "\n" } else { " " })?;
+		f.write_str("}")?;
+		Ok(())
+	}
+}
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -111,6 +128,8 @@ impl Mesh {
 			}
 		}
 		
+		trace!("Vertices loaded: {:#?}", &vertices);
+		
 		// Upload vertex information to OpenGL
 		let buffer = VertexBuffer::new(ctx, &vertices)
 			.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
@@ -118,6 +137,8 @@ impl Mesh {
 		let material = file.material.clone()
 			.and_then(|mat_name| file.materials.get(&mat_name).map(Material::clone))
 			.unwrap_or_else(Material::default);
+		
+		trace!("Material loaded: {:?}", &material);
 		
 		Ok(Mesh {
 			material: material,

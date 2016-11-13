@@ -24,8 +24,28 @@ use std::process::exit;
 
 use game::Game;
 
+pub fn parse_log_level() -> Option<simplelog::LogLevelFilter> {
+	use std::ascii::AsciiExt;
+	
+	let var = std::env::var("PORTAL_LOG").unwrap_or(String::new());
+	     if var.eq_ignore_ascii_case("off"  ) { Some(simplelog::LogLevelFilter::Off  ) }
+	else if var.eq_ignore_ascii_case("error") { Some(simplelog::LogLevelFilter::Error) }
+	else if var.eq_ignore_ascii_case("warn" ) { Some(simplelog::LogLevelFilter::Warn ) }
+	else if var.eq_ignore_ascii_case("info" ) { Some(simplelog::LogLevelFilter::Info ) }
+	else if var.eq_ignore_ascii_case("debug") { Some(simplelog::LogLevelFilter::Debug) }
+	else if var.eq_ignore_ascii_case("trace") { Some(simplelog::LogLevelFilter::Trace) }
+	else { None }
+}
+
 pub fn main() {
-	simplelog::TermLogger::init(simplelog::LogLevelFilter::Info)
+	let config = simplelog::Config {
+		time: Some(simplelog::LogLevel::Error),
+		level: Some(simplelog::LogLevel::Error),
+		target: Some(simplelog::LogLevel::Error),
+		location: Some(simplelog::LogLevel::Debug),
+	};
+	
+	simplelog::TermLogger::init(parse_log_level().unwrap_or(simplelog::LogLevelFilter::Info), config)
 		.map_err(|e| writeln!(io::stderr(), "Error: Logger could not be initialized: {}", e).ok())
 		.ok();
 	info!("Logger initialized.");
