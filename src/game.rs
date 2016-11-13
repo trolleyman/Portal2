@@ -2,8 +2,7 @@ use prelude::*;
 
 use glutin::WindowBuilder;
 use glium::backend::Facade;
-use glium::Display;
-use glium::DisplayBuild;
+use glium::{Surface, Display, DisplayBuild};
 
 use event::InternalEvent;
 use render::Render;
@@ -89,8 +88,11 @@ impl Game {
 				}
 			}
 			
-			// Render world
+			// Clear frame
 			let mut frame = self.win.draw();
+			frame.clear_all((0.0, 0.0, 0.0, 1.0), 1.0, 0);
+			
+			// Render world
 			self.world.render(&mut self.ren, &mut frame);
 			
 			// Swap buffers
