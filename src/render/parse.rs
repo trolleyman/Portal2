@@ -240,7 +240,13 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 			"Ni" => { /* TODO: Figure out what this command is */ },
 			"d"  => { current_mat.d = parse1(&state, &mut args)?; },
 			"illum" => { /* TODO: Implement this command */ }
-			"map_Kd" => { current_mat.map_Kd = Some(parse_texture(&state, &mut args)?); },
+			"map_Kd" => {
+				let s: String = parse1(&state, &mut args)?;
+				match parse_texture_id(&state, &s) {
+					Ok(id) => { current_mat.map_Kd = Some(id); },
+					Err(e) => { warn!("Could not load texture ({}) at location {}:{}: {}", s, state.path.display(), state.lno, e); }
+				}
+			},
 			_ => {
 				return Err(format!("Unrecognized command `{}` at location {}:{}", state.command, state.lno, state.path.display()))
 			}
@@ -252,10 +258,15 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 	Ok(())
 }
 
-fn parse_texture<'a, I>(st: &ParseState, it: &mut I) -> GameResult<TextureID>
-		where I: Iterator<Item=&'a str> {
-	let s: String = parse1(st, it)?;
-	Ok(s)
+fn parse_texture_id(st: &ParseState, s: &str) -> GameResult<TextureID> {
+	// s == '../img/whatever.png'
+	// p == 'C:/....../res/mesh/thing.obj/../../img/whatever.png'
+	let p = st.path.join("..").join(s);
+	p.canonicalize().map_err(|e| format!("Could not canonicalize path ({}): {}", e, p.display()))?;
+	// p == 'C:/....../res/img/whatever.png'
+	// rel_path == 'res/img/whatever.png' (hopefully)
+	let rel_path = vfs::relative_exe(&p)?;
+	Ok(rel_path.to_string_lossy().into_owned())
 }
 
 fn parse_vec3<'a, I>(st: &ParseState, it: &mut I) -> GameResult<Vec3>
