@@ -33,7 +33,7 @@ impl Render {
 			ctx: ctx.clone(),
 			mesh_bank: MeshBank::new(ctx.clone()),
 			tex_bank: TextureBank::new(ctx.clone())?,
-			phong_program: parse::load_shader_program(&ctx, "shader/phong")?,
+			phong_program: parse::load_shader_program(&ctx, "res/shader/phong")?,
 			camera: c,
 			mat_view: mat_view,
 		})
