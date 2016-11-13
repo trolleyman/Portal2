@@ -1,5 +1,6 @@
 use prelude::*;
 
+use std::borrow::Cow;
 use std::fs::File;
 use std::rc::Rc;
 use std::collections::HashMap;
@@ -17,16 +18,45 @@ pub const TEX_DIR: &'static str = "res/tex/";
 pub struct TextureBank {
 	ctx: Rc<Context>,
 	cache: HashMap<TextureID, Texture2d>,
+	default_texture: Texture2d,
 }
 
 impl TextureBank {
-	pub fn new(ctx: Rc<Context>) -> TextureBank {
+	pub fn new(ctx: Rc<Context>) -> GameResult<TextureBank> {
+		let data: &[f32] = &[1.0, 1.0, 1.0, 1.0];
+		let dt = Texture2d::new(&ctx, RawImage2d {
+			data: Cow::from(data),
+			width: 1,
+			height: 1,
+			format: ClientFormat::F32F32F32F32,
+		}).map_err(|e| format!("Unable to create TexureBank: Unable to create default texture: {}", e))?;
+		
 		let mut tb = TextureBank {
 			ctx: ctx,
 			cache: HashMap::new(),
+			default_texture: dt,
 		};
 		tb.load_textures();
-		tb
+		Ok(tb)
+	}
+	
+	/// Returns the default texture (one opaque white pixel)
+	pub fn default_texture<'a>(&'a self) -> &'a Texture2d {
+		&self.default_texture
+	}
+	
+	// Get
+	pub fn get_texture_or_default<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
+		self.load_texture(id.clone())
+			.map_err(|e| {
+				warn!("Could not load texture ({}): {}", id, e);
+				warn!("Using default texture");
+			}).ok();
+		
+		match self.cache.get(&id) {
+			Some(t) => t,
+			None => &self.default_texture
+		}
 	}
 	
 	/// Gets a teture from the TextureBank
@@ -85,6 +115,7 @@ fn tex_from_file(ctx: &Rc<Context>, id: &TextureID) -> GameResult<Texture2d> {
 		.map_err(|e| format!("Invalid png file ({}): {}", e, path.display()))?;
 	
 	let mut decoder = png::Decoder::new(f);
+	// Alpha stripped due to png crate limitations
 	(png::TRANSFORM_EXPAND | png::TRANSFORM_STRIP_ALPHA).set_param(&mut decoder);
 	let (info, mut reader) = decoder.read_info()
 		.map_err(|e| format!("Invalid png file ({}): {}", e, path.display()))?;
@@ -97,7 +128,7 @@ fn tex_from_file(ctx: &Rc<Context>, id: &TextureID) -> GameResult<Texture2d> {
 		data: buf.into(),
 		width: info.width,
 		height: info.height,
-		format: ClientFormat::U8U8U8,
+		format: ClientFormat::U8U8U8, // 3 U8s because Alpha is stripped due to png crate limitations
 	};
 	
 	let tex = Texture2d::new(ctx, raw)

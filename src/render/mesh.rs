@@ -28,7 +28,7 @@ impl MeshBank {
 		mb.load_meshes();
 		mb
 	}
-	
+		
 	/// Gets a mesh from the MeshBank
 	pub fn get_mesh<'a>(&'a mut self, id: MeshID) -> GameResult<&'a Mesh> {
 		// If cache doesn't exist, loads it from a file.
@@ -104,8 +104,8 @@ impl fmt::Debug for Vertex {
 
 #[derive(Debug)]
 pub struct Mesh {
-	material: Material,
-	vertices: VertexBuffer<Vertex>,
+	pub material: Material,
+	pub vertices: VertexBuffer<Vertex>,
 }
 impl Mesh {
 	pub fn from_file(ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {

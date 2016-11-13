@@ -2,8 +2,7 @@ use prelude::*;
 
 use glium::Frame;
 
-use render::Render;
-use render::mesh::MeshID;
+use render::{MeshID, Render};
 
 #[derive(Debug, Clone)]
 pub struct Transform {
@@ -72,17 +71,17 @@ impl From<Vec3> for Transform {
 #[allow(dead_code)]
 pub struct Entity {
 	pub trans: Transform,
-	pub mesh: MeshID,
+	pub mesh_id: MeshID,
 }
 impl Entity {
-	pub fn new<T: Into<Transform>>(trans: T, mesh: MeshID) -> Entity {
+	pub fn new<T: Into<Transform>>(trans: T, mesh_id: MeshID) -> Entity {
 		Entity {
 			trans: trans.into(),
-			mesh: mesh,
+			mesh_id: mesh_id,
 		}
 	}
 	
-	pub fn render(&self, _r: &mut Render, _f: &mut Frame) {
-		unimplemented!()
+	pub fn render(&self, r: &mut Render, f: &mut Frame) {
+		r.draw_mesh(f, self.mesh_id.clone(), self.trans.mat());
 	}
 }

@@ -1,6 +1,7 @@
 pub use result::{IntoGameResult, GameResult};
 
-pub use cg::prelude::*;
+pub use cg::prelude::{Angle, Array, ElementWise, EuclideanSpace, InnerSpace, Matrix, MetricSpace, One, Rotation, Rotation2, Rotation3, SquareMatrix, Transform2, Transform3, VectorSpace, Zero};
+pub use cg::prelude::Transform as TransformTrait;
 pub use cg::conv::*;
 
 pub use cg::{vec2, vec3, vec4};
@@ -8,6 +9,7 @@ pub use cg::{Vector2, Vector3, Vector4};
 pub use cg::{Matrix2, Matrix3, Matrix4};
 pub use cg::Quaternion;
 pub use cg::{Rad, Deg};
+pub use cg::{Perspective, PerspectiveFov};
 
 pub type Flt = f32;
 pub type Idx = u32;

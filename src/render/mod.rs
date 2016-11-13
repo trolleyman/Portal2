@@ -1,30 +1,79 @@
 #[allow(unused_imports)]
 use prelude::*;
 
-use self::mesh::MeshBank;
-
 use std::rc::Rc;
 
+use glium::{Depth, DepthTest, Frame, Program, Surface};
+use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
+use glium::index::{PrimitiveType, NoIndices};
 use glium::backend::Context;
 
-use self::texture::{TextureID, TextureBank};
+pub use self::camera::Camera;
+pub use self::mesh::*;
+pub use self::texture::*;
 
-pub mod mesh;
-pub mod parse;
-pub mod texture;
+mod camera;
+mod mesh;
+mod parse;
+mod texture;
 
 pub struct Render {
-	pub ctx: Rc<Context>,
-	pub mesh_bank: MeshBank,
-	pub tex_bank: TextureBank,
+	#[allow(dead_code)]
+	ctx: Rc<Context>,
+	mesh_bank: MeshBank,
+	tex_bank: TextureBank,
+	phong_program: Program,
+	camera: Camera,
+	mat_view: Mat4,
 }
 impl Render {
-	pub fn new(ctx: Rc<Context>) -> Result<Render, String> {
+	pub fn new(ctx: Rc<Context>, c: Camera) -> GameResult<Render> {
+		let mat_view = c.view_matrix();
 		Ok(Render {
 			ctx: ctx.clone(),
 			mesh_bank: MeshBank::new(ctx.clone()),
-			tex_bank: TextureBank::new(ctx),
+			tex_bank: TextureBank::new(ctx.clone())?,
+			phong_program: parse::load_shader_program(&ctx, "shader/phong")?,
+			camera: c,
+			mat_view: mat_view,
 		})
+	}
+	
+	pub fn set_camera(&mut self, c: Camera) {
+		self.mat_view = c.view_matrix();
+		self.camera = c;
+	}
+	
+	pub fn draw_mesh(&mut self, f: &mut Frame, mesh_id: MeshID, mat_model: Mat4) {
+		/*fn draw<'a, 'b, V, I, U>(&mut self, V, I, program: &Program, uniforms: &U, draw_parameters: &DrawParameters) -> Result<(), DrawError> 
+			where V: MultiVerticesSource<'b>, I: Into<IndicesSource<'a>>, U: Uniforms*/
+		
+		let dims = f.get_dimensions();
+		let mat_projection = self.camera.projection_matrix(dims.0, dims.1);
+		let mat_mvp = mat_projection * self.mat_view * mat_model;
+		// TODO: Get a default mesh if failed to load mesh_id
+		let mesh = self.mesh_bank.get_mesh(mesh_id.clone()).unwrap();
+		let ret = f.draw(
+			&mesh.vertices,
+			NoIndices(PrimitiveType::TrianglesList),
+			&self.phong_program,
+			&uniform! {
+				u_mvp: array4x4(mat_mvp),
+				Ka: array3(mesh.material.Ka),
+				d: mesh.material.d,
+				map_Ka: self.tex_bank.get_texture_or_default(mesh.material.map_Kd.clone().unwrap_or_else(|| String::new())),
+			},
+			&DrawParameters {
+				depth: Depth {
+					test: DepthTest::IfLessOrEqual,
+					write: true,
+					..Default::default()
+				},
+				backface_culling: BackfaceCullingMode::CullClockwise,
+				..Default::default()
+			}
+		);
+		ret.map_err(|e| warn!("Could not draw mesh {}: {}", mesh_id, e)).ok();
 	}
 }
 
@@ -32,31 +81,31 @@ impl Render {
 pub struct Material {
 	/// Ambient colour
 	pub Ka: Vec3,
-	/// Difuse colour
+	/// Difuse colour (TODO)
 	pub Kd: Vec3,
-	/// Specular colour
+	/// Specular colour (TODO)
 	pub Ks: Vec3,
-	/// Emissive colour
+	/// Emissive colour (TODO)
 	pub Ke: Vec3,
-	/// Specular exponent
+	/// Specular exponent (TODO)
 	pub Ns: Flt,
 	/// Transparency
 	pub d: Flt,
 	/// Ambient texture map
 	pub map_Ka: Option<TextureID>,
-	/// Diffuse texture map
+	/// Diffuse texture map (TODO)
 	pub map_Kd: Option<TextureID>,
-	/// Specular color texture map
+	/// Specular color texture map (TODO)
 	pub map_Ks: Option<TextureID>,
-	/// Emissive texture map
+	/// Emissive texture map (TODO)
 	pub map_Ke: Option<TextureID>,
-	/// Specular highlight component
+	/// Specular highlight component texture map (TODO)
 	pub map_Ns: Option<TextureID>,
-	/// Alpha texture map
+	/// Alpha texture map (TODO)
 	pub map_d: Option<TextureID>,
-	/// Bump map
+	/// Bump map (TODO)
 	pub bump: Option<TextureID>,
-	/// Displacement map
+	/// Displacement map (TODO)
 	pub disp: Option<TextureID>,
 }
 impl Default for Material {

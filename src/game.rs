@@ -9,6 +9,9 @@ use event::InternalEvent;
 use render::Render;
 use world::World;
 
+pub const WIN_INIT_W: u32 = 800;
+pub const WIN_INIT_H: u32 = 600;
+
 pub struct GameState {
 	/// Should the game quit?
 	quit: bool,
@@ -37,16 +40,16 @@ impl Game {
 		// Initialize the window
 		let win = WindowBuilder::new()
 			.with_title("Portal")
-			.with_dimensions(800, 600)
+			.with_dimensions(WIN_INIT_W, WIN_INIT_H)
 			.with_vsync()
 			.with_visibility(false)
 			.build_glium()
 			.map_err(|e| format!("Window creation error: {}", e))?;
 		
-		// Make the renderer
-		let ren = Render::new(win.get_context().clone())?;
-		// And the world
+		// Create the world
 		let world = World::new()?;
+		// And the renderer
+		let ren = Render::new(win.get_context().clone(), world.camera().clone())?;
 		// And the GameState
 		let state = GameState::default();
 		

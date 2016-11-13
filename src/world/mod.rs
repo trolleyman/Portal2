@@ -1,23 +1,20 @@
 use prelude::*;
 
 pub mod creator;
-pub mod entity;
+mod entity;
+
+pub use self::entity::{Transform, Entity};
 
 use glium::Frame;
 
-use render::Render;
-use world::entity::Entity;
+use render::{Camera, Render};
 
 #[allow(dead_code)]
 pub struct World {
+	/// Main camera in the world
+	camera: Camera,
 	/// Entities in the world. All are static atm.
 	entities: Vec<Entity>,
-	/// Player's position in the world
-	player_pos: Vec3,
-	/// Player's x-angle (looking to the right)
-	player_angx: Rad<Flt>,
-	/// Player's y-angle (looking upwards)
-	player_angy: Rad<Flt>,
 }
 impl World {
 	pub fn new() -> GameResult<World> {
@@ -25,11 +22,16 @@ impl World {
 		Ok(w)
 	}
 	
+	pub fn camera(&self) -> &Camera {
+		&self.camera
+	}
+	
 	pub fn move_player(&mut self, v: Vec3) {
-		self.player_pos += v;
+		self.camera.move_camera(v);
 	}
 	
 	pub fn render(&self, r: &mut Render, f: &mut Frame) {
+		r.set_camera(self.camera.clone());
 		for e in self.entities.iter() {
 			e.render(r, f);
 		}

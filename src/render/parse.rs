@@ -5,9 +5,13 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::rc::Rc;
 
 use render::texture::TextureID;
 use render::Material;
+
+use glium::Program;
+use glium::backend::Context;
 
 use vfs;
 
@@ -294,4 +298,27 @@ fn parseN<'a, F: FromStr, I>(st: &ParseState, n: usize, it: &mut I) -> GameResul
 		ret.push(parse1(st, it)?);
 	}
 	Ok(ret)
+}
+
+pub fn load_shader_program(ctx: &Rc<Context>, rel_base: &str) -> GameResult<Program> {
+	// TODO: Handle more shader types
+	let base = vfs::canonicalize_exe(rel_base);
+	
+	// Load source of shaders
+	let mut vs_src = String::new();
+	File::open(base.with_extension("vs"))
+		.map_err(|e| format!("Could not open file {}.vs: {}", base.display(), e))?
+		.read_to_string(&mut vs_src)
+		.map_err(|e| format!("Could not read file {}.vs: {}", base.display(), e))?;
+	
+	let mut fs_src = String::new();
+	File::open(base.with_extension("fs"))
+		.map_err(|e| format!("Could not open file {}.fs: {}", base.display(), e))?
+		.read_to_string(&mut fs_src)
+		.map_err(|e| format!("Could not read file {}.fs: {}", base.display(), e))?;
+	
+	let prog = Program::from_source(ctx, &vs_src, &fs_src, None)
+		.map_err(|e| format!("Could not parse shader {}\n{}", base.display(), e))?;
+	
+	Ok(prog)
 }
