@@ -7,7 +7,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::rc::Rc;
 
-use render::texture::TextureID;
 use render::Material;
 
 use glium::Program;
@@ -245,11 +244,8 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 			"d"  => { current_mat.d = parse1(&state, &mut args)?; },
 			"illum" => { /* TODO: Implement this command */ }
 			"map_Kd" => {
-				let s: String = parse1(&state, &mut args)?;
-				match parse_texture_id(&state, &s) {
-					Ok(id) => { current_mat.map_Kd = Some(id); },
-					Err(e) => { warn!("Could not load texture ({}) at location {}:{}: {}", s, state.path.display(), state.lno, e); }
-				}
+				let id: String = parse1(&state, &mut args)?;
+				current_mat.map_Kd = Some(id);
 			},
 			_ => {
 				return Err(format!("Unrecognized command `{}` at location {}:{}", state.command, state.lno, state.path.display()))
@@ -260,22 +256,6 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 		f.materials.insert(name, current_mat.clone());
 	}
 	Ok(())
-}
-
-fn parse_texture_id(st: &ParseState, s: &str) -> GameResult<TextureID> {
-	// s == '../img/whatever.png'
-	if !PathBuf::from(s).is_relative() {
-		let rel_path = vfs::relative_exe(s)?;
-		Ok(rel_path.to_string_lossy().into_owned())
-	} else {
-		// p == 'C:/....../res/mesh/thing.obj/../../img/whatever.png'
-		let p = st.path.join("..").join(s);
-		// p == 'C:/....../res/img/whatever.png'
-		p.canonicalize().map_err(|e| format!("Could not canonicalize path ({}): {}", e, p.display()))?;
-		// rel_path == 'res/img/whatever.png' (hopefully)
-		let rel_path = vfs::relative_exe(&p)?;
-		Ok(rel_path.to_string_lossy().into_owned())
-	}
 }
 
 fn parse_vec3<'a, I>(st: &ParseState, it: &mut I) -> GameResult<Vec3>
