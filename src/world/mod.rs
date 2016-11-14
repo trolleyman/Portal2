@@ -30,6 +30,10 @@ impl World {
 		self.camera.move_camera(v);
 	}
 	
+	pub fn rotate_player(&mut self, r: Vector2<Rad<Flt>>) {
+		self.camera.rotate_player(r);
+	}
+	
 	pub fn render(&self, r: &mut Render, f: &mut Frame) {
 		r.set_camera(self.camera.clone());
 		for e in self.entities.iter() {

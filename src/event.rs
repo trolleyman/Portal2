@@ -17,6 +17,10 @@ pub enum InternalEvent {
 	/// +y is up
 	/// +z is back
 	Move(Vec3),
+	/// Rotate the player
+	/// x is yaw
+	/// y is pitch
+	Rotate(Vector2<Rad<Flt>>),
 	/// Focus on the application (enable mouse locking)
 	Focus,
 	/// Unfocus from the application (disable mouse locking)
@@ -31,6 +35,19 @@ impl InternalEvent {
 					state.keyboard_state.set_key_state(key, element_state);
 					if state.focused && element_state == Pressed {
 						key_pressed(&mut ret, key);
+					}
+				},
+				Event::MouseMoved(x, y) => {
+					if let Some(mid) = state.mid_screen {
+						if state.focused {
+							let rel = (x - mid.0, y - mid.1);
+							if rel != (0, 0) {
+								let yaw   = Rad(rel.0 as Flt * 0.003);
+								let pitch = Rad(rel.1 as Flt * 0.003);
+								ret.push(InternalEvent::Rotate(vec2(yaw, pitch)));
+								info!("Mouse Moved: Abs: {:3}, {:3} | Rel: {:3}, {:3} | Rot: {:3?}, {:3?}", x, y, rel.0, rel.1, yaw, pitch);
+							}
+						}
 					}
 				},
 				Event::MouseInput(Pressed, MouseButton::Left) => {

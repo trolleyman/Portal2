@@ -49,4 +49,9 @@ impl Camera {
 		// TODO: Take account of the rotation of the camera
 		self.pos += v;
 	}
+	
+	pub fn rotate_player(&mut self, r: Vector2<Rad<Flt>>) {
+		self.angx += r.x;
+		self.angy += r.y;
+	}
 }

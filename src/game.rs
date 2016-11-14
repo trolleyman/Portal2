@@ -34,6 +34,8 @@ pub struct GameState {
 	pub focused: bool,
 	/// State of the keyboard
 	pub keyboard_state: KeyboardState,
+	/// Middle of the screen co-ordinates
+	pub mid_screen: Option<(i32, i32)>,
 }
 impl Default for GameState {
 	fn default() -> GameState {
@@ -41,6 +43,7 @@ impl Default for GameState {
 			quit: false,
 			focused: false,
 			keyboard_state: KeyboardState::new(),
+			mid_screen: None,
 		}
 	}
 }
@@ -111,8 +114,12 @@ impl Game {
 			// Center the cursor if focused
 			if self.state.focused {
 				if let Some(win) = self.win.get_window() {
-					win.get_outer_size()
-						.map(|(w, h)| win.set_cursor_position(w as i32 / 2, h as i32 / 2));
+					if let Some((w, h)) = win.get_outer_size() {
+						let mid = (w as i32 / 2, h as i32 / 2);
+						info!("Mid: {}, {}", mid.0, mid.1);
+						self.state.mid_screen = Some(mid);
+						win.set_cursor_position(mid.0, mid.1);
+					}
 				}
 			}
 			
@@ -153,6 +160,9 @@ impl Game {
 				Move(v) => {
 					self.world.move_player(v * dt * SPEED_MULT);
 				},
+				Rotate(r) => {
+					self.world.rotate_player(r);
+				}
 				Focus => {
 					self.state.focused = true;
 					if let Some(win) = self.win.get_window() {
