@@ -1,5 +1,5 @@
 [root]
-name = "Portal"
+name = "Portal2"
 version = "0.1.0"
 dependencies = [
  "cgmath 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
