@@ -36,6 +36,8 @@ pub struct GameState {
 	pub keyboard_state: KeyboardState,
 	/// Middle of the screen co-ordinates
 	pub mid_screen: Option<(i32, i32)>,
+	/// Number of frames to ignore the mouse for. If zero, don't ignore the mouse.
+	pub ignore_mouse_frames: u32,
 }
 impl Default for GameState {
 	fn default() -> GameState {
@@ -44,6 +46,7 @@ impl Default for GameState {
 			focused: false,
 			keyboard_state: KeyboardState::new(),
 			mid_screen: None,
+			ignore_mouse_frames: 0,
 		}
 	}
 }
@@ -116,7 +119,7 @@ impl Game {
 				if let Some(win) = self.win.get_window() {
 					if let Some((w, h)) = win.get_outer_size() {
 						let mid = (w as i32 / 2, h as i32 / 2);
-						info!("Mid: {}, {}", mid.0, mid.1);
+						trace!("Mid: {}, {}", mid.0, mid.1);
 						self.state.mid_screen = Some(mid);
 						win.set_cursor_position(mid.0, mid.1);
 					}
@@ -165,6 +168,7 @@ impl Game {
 				}
 				Focus => {
 					self.state.focused = true;
+					self.state.ignore_mouse_frames = 1;
 					if let Some(win) = self.win.get_window() {
 						win.set_cursor_state(CursorState::Grab)
 							.map_err(|e| warn!("set_cursor_state failed: {}", e)).ok();
@@ -172,6 +176,7 @@ impl Game {
 				},
 				Unfocus => {
 					self.state.focused = false;
+					self.state.mid_screen = None;
 					if let Some(win) = self.win.get_window() {
 						win.set_cursor_state(CursorState::Normal)
 							.map_err(|e| warn!("set_cursor_state failed: {}", e)).ok();

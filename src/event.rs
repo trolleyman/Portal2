@@ -44,8 +44,12 @@ impl InternalEvent {
 							if rel != (0, 0) {
 								let yaw   = Rad(rel.0 as Flt * 0.003);
 								let pitch = Rad(rel.1 as Flt * 0.003);
-								ret.push(InternalEvent::Rotate(vec2(yaw, pitch)));
-								info!("Mouse Moved: Abs: {:3}, {:3} | Rel: {:3}, {:3} | Rot: {:3?}, {:3?}", x, y, rel.0, rel.1, yaw, pitch);
+								if state.ignore_mouse_frames == 0 {
+									ret.push(InternalEvent::Rotate(vec2(yaw, pitch)));
+									trace!("Mouse Moved: Abs: {:3}, {:3} | Rel: {:3}, {:3} | Rot: {:.3?}, {:.3?}", x, y, rel.0, rel.1, yaw, pitch);
+								} else {
+									trace!("MOUSE IGNORED: Abs: {:3}, {:3} | Rel: {:3}, {:3} | Rot: {:.3?}, {:.3?}", x, y, rel.0, rel.1, yaw, pitch);
+								}
 							}
 						}
 					}
@@ -60,6 +64,9 @@ impl InternalEvent {
 			}
 		}
 		process_keyboard_state(&state.keyboard_state, &mut ret);
+		if state.ignore_mouse_frames > 0 {
+			state.ignore_mouse_frames -= 1;
+		}
 		ret
 	}
 }
