@@ -10,6 +10,7 @@ extern crate log;
 extern crate simplelog;
 
 pub mod prelude;
+pub mod key;
 pub mod event;
 pub mod game;
 pub mod render;

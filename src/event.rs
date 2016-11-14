@@ -1,6 +1,7 @@
 use prelude::*;
 
 use game::GameState;
+use key::KeyboardState;
 
 use glutin::VirtualKeyCode as Key;
 use glutin::ElementState::Pressed;
@@ -22,12 +23,13 @@ pub enum InternalEvent {
 	Unfocus,
 }
 impl InternalEvent {
-	pub fn from_events<I>(state: &GameState, it: &mut I) -> Vec<InternalEvent> where I: Iterator<Item=Event> {
+	pub fn from_events<I>(state: &mut GameState, it: &mut I) -> Vec<InternalEvent> where I: Iterator<Item=Event> {
 		let mut ret = vec![];
 		for e in it {
 			match e {
-				Event::KeyboardInput(Pressed, _, Some(key)) => {
-					if state.focused {
+				Event::KeyboardInput(element_state, _, Some(key)) => {
+					state.keyboard_state.set_key_state(key, element_state);
+					if state.focused && element_state == Pressed {
 						key_pressed(&mut ret, key);
 					}
 				},
@@ -40,19 +42,25 @@ impl InternalEvent {
 				_ => {}
 			}
 		}
+		process_keyboard_state(&state.keyboard_state, &mut ret);
 		ret
 	}
+}
+
+fn process_keyboard_state(state: &KeyboardState, es: &mut Vec<InternalEvent>) {
+	let spd: Flt = if state.is_key_down(Key::LShift) || state.is_key_down(Key::RShift) { 2.0 } else { 1.0 };
+	
+	if state.is_key_down(Key::W) { es.push(InternalEvent::Move(spd * vec3( 0.0,  0.0, -1.0))); }
+	if state.is_key_down(Key::S) { es.push(InternalEvent::Move(spd * vec3( 0.0,  0.0,  1.0))); }
+	if state.is_key_down(Key::A) { es.push(InternalEvent::Move(spd * vec3(-1.0,  0.0,  0.0))); }
+	if state.is_key_down(Key::D) { es.push(InternalEvent::Move(spd * vec3( 1.0,  0.0,  0.0))); }
+	if state.is_key_down(Key::Q) { es.push(InternalEvent::Move(spd * vec3( 0.0,  1.0,  0.0))); }
+	if state.is_key_down(Key::E) { es.push(InternalEvent::Move(spd * vec3( 0.0, -1.0,  0.0))); }
 }
 
 fn key_pressed(es: &mut Vec<InternalEvent>, key: Key) {
 	match key {
 		Key::Escape => { es.push(InternalEvent::Unfocus); }
-		Key::W => { es.push(InternalEvent::Move(vec3( 0.0,  0.0, -1.0))); },
-		Key::S => { es.push(InternalEvent::Move(vec3( 0.0,  0.0,  1.0))); },
-		Key::A => { es.push(InternalEvent::Move(vec3( 1.0,  0.0,  0.0))); },
-		Key::D => { es.push(InternalEvent::Move(vec3(-1.0,  0.0,  0.0))); },
-		Key::Q => { es.push(InternalEvent::Move(vec3( 0.0,  1.0,  0.0))); },
-		Key::E => { es.push(InternalEvent::Move(vec3( 0.0, -1.0,  0.0))); },
 		_ => {}
 	}
 }

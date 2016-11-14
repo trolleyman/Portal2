@@ -1,9 +1,12 @@
 use prelude::*;
 
+use std::time::{Instant, Duration};
+
 use glutin::WindowBuilder;
 use glium::backend::Facade;
 use glium::{Surface, Display, DisplayBuild};
 
+use key::KeyboardState;
 use event::InternalEvent;
 use render::Render;
 use world::World;
@@ -11,18 +14,33 @@ use world::World;
 pub const WIN_INIT_W: u32 = 800;
 pub const WIN_INIT_H: u32 = 600;
 
+pub fn duration_to_secs(d: Duration) -> f64 {
+	let secs = d.as_secs();
+	let nanos = d.subsec_nanos();
+	secs as f64 + nanos as f64 / 1000_000_000.0
+}
+
+pub fn duration_to_millis(d: Duration) -> u64 {
+	let secs = d.as_secs();
+	let nanos = d.subsec_nanos();
+	secs * 1000 + nanos as u64 / 1000_000
+}
+
 pub struct GameState {
 	/// Should the game quit?
 	quit: bool,
 	/// Is the game focused on?
 	/// If yes, then the cursor should be reset to the middle of the window each loop.
 	pub focused: bool,
+	/// State of the keyboard
+	pub keyboard_state: KeyboardState,
 }
 impl Default for GameState {
 	fn default() -> GameState {
 		GameState {
 			quit: false,
 			focused: false,
+			keyboard_state: KeyboardState::new(),
 		}
 	}
 }
@@ -62,9 +80,9 @@ impl Game {
 		
 		// Handle initial events
 		if state.focused {
-			game.handle_events(vec![InternalEvent::Focus]);
+			game.handle_events(0.0, vec![InternalEvent::Focus]);
 		} else {
-			game.handle_events(vec![InternalEvent::Unfocus]);
+			game.handle_events(0.0, vec![InternalEvent::Unfocus]);
 		}
 		
 		Ok(game)
@@ -74,12 +92,22 @@ impl Game {
 		// Show the window
 		self.win.get_window().map(|w| w.show());
 		
+		let mut last_time = Instant::now();
+		
 		while !self.state.quit {
+			// Calculate times
+			let dt_dur = last_time.elapsed();
+			let dt_millis = duration_to_millis(dt_dur);
+			let dt = duration_to_secs(dt_dur) as Flt;
+			last_time = Instant::now();
+			
+			info!("{:3}ms dt: {:.6} pos: {:?}", dt_millis, dt, self.world.camera().pos);
+			
 			// Process events
 			let es = self.process_events();
 			
 			// Update world & handle events
-			self.handle_events(es);
+			self.handle_events(dt, es);
 			// Center the cursor if focused
 			if self.state.focused {
 				if let Some(win) = self.win.get_window() {
@@ -104,15 +132,17 @@ impl Game {
 		Ok(())
 	}
 	
-	/// Process external events into internal events.
+	/// Process external events into internal events. Also update the KeyboardState
 	pub fn process_events(&mut self) -> Vec<InternalEvent> {
-		InternalEvent::from_events(&self.state, &mut self.win.poll_events())
+		InternalEvent::from_events(&mut self.state, &mut self.win.poll_events())
 	}
 	
 	/// Handle internal events
-	pub fn handle_events(&mut self, es: Vec<InternalEvent>) {
+	pub fn handle_events(&mut self, dt: Flt, es: Vec<InternalEvent>) {
 		use event::InternalEvent::*;
 		use glutin::CursorState;
+		
+		const SPEED_MULT: Flt = 2.0;
 		
 		for e in es {
 			info!("Event recieved: {:?}", e);
@@ -121,7 +151,7 @@ impl Game {
 					self.state.quit = true;
 				},
 				Move(v) => {
-					self.world.move_player(v);
+					self.world.move_player(v * dt * SPEED_MULT);
 				},
 				Focus => {
 					self.state.focused = true;

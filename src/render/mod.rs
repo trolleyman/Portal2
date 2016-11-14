@@ -7,6 +7,9 @@ use glium::{Depth, DepthTest, Frame, Program, Surface};
 use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
 use glium::index::{PrimitiveType, NoIndices};
 use glium::backend::Context;
+use glium::uniforms::MinifySamplerFilter;
+use glium::uniforms::MagnifySamplerFilter;
+use glium::uniforms::SamplerWrapFunction;
 
 pub use self::camera::Camera;
 pub use self::mesh::*;
@@ -45,14 +48,12 @@ impl Render {
 	}
 	
 	pub fn draw_mesh(&mut self, f: &mut Frame, mesh_id: MeshID, mat_model: Mat4) {
-		/*fn draw<'a, 'b, V, I, U>(&mut self, V, I, program: &Program, uniforms: &U, draw_parameters: &DrawParameters) -> Result<(), DrawError> 
-			where V: MultiVerticesSource<'b>, I: Into<IndicesSource<'a>>, U: Uniforms*/
-		
 		let dims = f.get_dimensions();
 		let mat_projection = self.camera.projection_matrix(dims.0, dims.1);
 		let mat_mvp = mat_projection * self.mat_view * mat_model;
 		// TODO: Get a default mesh if failed to load mesh_id
 		let mesh = self.mesh_bank.get_mesh(mesh_id.clone()).unwrap();
+		let tex = self.tex_bank.get_texture_or_default(mesh.material.map_Kd.clone().unwrap_or_else(|| String::new()));
 		let ret = f.draw(
 			&mesh.vertices,
 			NoIndices(PrimitiveType::TrianglesList),
@@ -61,7 +62,10 @@ impl Render {
 				u_mvp: array4x4(mat_mvp),
 				Ka: array3(mesh.material.Ka),
 				d: mesh.material.d,
-				map_Ka: self.tex_bank.get_texture_or_default(mesh.material.map_Kd.clone().unwrap_or_else(|| String::new())),
+				map_Ka: tex.sampled()
+					.minify_filter(MinifySamplerFilter::Nearest)
+					.magnify_filter(MagnifySamplerFilter::Nearest)
+					.wrap_function(SamplerWrapFunction::Clamp),
 			},
 			&DrawParameters {
 				depth: Depth {
