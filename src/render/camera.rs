@@ -46,8 +46,9 @@ impl Camera {
 	}
 	
 	pub fn move_camera(&mut self, v: Vec3) {
-		// TODO: Take account of the rotation of the camera
-		self.pos += v;
+		// Take account of the rotation of the camera
+		let rot = Mat4::from_angle_y(-self.angx);
+		self.pos += (rot * v.extend(0.0)).truncate();
 	}
 	
 	pub fn rotate_player(&mut self, r: Vector2<Rad<Flt>>) {
