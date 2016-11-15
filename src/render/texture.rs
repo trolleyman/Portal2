@@ -48,7 +48,7 @@ impl TextureBank {
 	
 	/// Load the texture from a file, or an error texture if that doesn't work.
 	/// 
-	/// The error texture is a pink and black checkerboard.
+	/// The error texture is a pink and black checkerboard (TODO: For now it is the same as default_texture).
 	pub fn get_texture_or_error<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
 		self.get_texture_or_default(id)
 	}

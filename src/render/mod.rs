@@ -7,6 +7,8 @@ use glium::{Depth, DepthTest, Frame, Program, Surface};
 use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
 use glium::index::{PrimitiveType, NoIndices};
 use glium::backend::Context;
+use glium::uniforms::MinifySamplerFilter;
+use glium::uniforms::MagnifySamplerFilter;
 
 pub use self::camera::Camera;
 pub use self::mesh::*;
@@ -78,9 +80,11 @@ impl Render {
 			&self.phong_program,
 			&uniform! {
 				u_mvp: array4x4(mat_mvp),
-				Ka: array3(mesh.material.Ka),
-				d: mesh.material.d,
-				map_Ka: tex,
+				u_Ka: array3(mesh.material.Ka),
+				u_d: mesh.material.d,
+				u_map_Ka: tex.sampled()
+					.minify_filter(MinifySamplerFilter::Nearest)
+					.magnify_filter(MagnifySamplerFilter::Nearest),
 			},
 			&DrawParameters {
 				depth: Depth {
