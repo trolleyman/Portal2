@@ -17,7 +17,36 @@ use vfs;
 /// Face is a series of 3 points representing a triangle
 /// 
 /// f 1/2/3 4/5/6 7/8/9 == vec3(vec3(1,2,3), vec3(4,5,6), vec3(7,8,9))
-pub type Face = Vector3<Vector3<Idx>>;
+#[derive(Copy, Clone, Debug)]
+pub struct IndexInfo {
+	pub vert: Idx,
+	pub uv: Idx,
+	pub norm: Idx,
+}
+impl IndexInfo {
+	pub fn new(vert: Idx, uv: Idx, norm: Idx) -> IndexInfo {
+		IndexInfo {
+			vert: vert,
+			uv: uv,
+			norm: norm,
+		}
+	}
+}
+#[derive(Copy, Clone, Debug)]
+pub struct PreIndexInfo {
+	pub vert: Idx,
+	pub uv: Option<Idx>,
+	pub norm: Option<Idx>,
+}
+impl PreIndexInfo {
+	pub fn new(vert: Idx, uv: Option<Idx>, norm: Option<Idx>) -> PreIndexInfo {
+		PreIndexInfo {
+			vert: vert,
+			uv: uv,
+			norm: norm,
+		}
+	}
+}
 
 #[derive(Debug)]
 pub struct ObjFile {
@@ -40,7 +69,8 @@ pub struct ObjFile {
 	/// Faces read
 	/// 
 	/// Guaranteed to be valid (every index points to a vertex/uv/normal that has been read)
-	pub faces: Vec<Face>,
+	pub faces: Vec<Vector3<IndexInfo>>,
+	pub pre_faces: Vec<Vector3<PreIndexInfo>>,
 }
 impl ObjFile {
 	pub fn new(rel_path: String) -> GameResult<ObjFile> {
@@ -54,14 +84,51 @@ impl ObjFile {
 			uvs: vec![],
 			normals: vec![],
 			faces: vec![],
+			pre_faces: vec![],
 		};
 		
 		parse_file(&mut f)?;
 		
-		// Validate file
+		// Validate pre_faces, so that we know all indices are in bounds
 		f.validate()?;
+				
+		// Calculate faces from pre_faces
+		f.calculate_faces();
 		
 		Ok(f)
+	}
+	
+	/// Calculates the faces from pre_faces
+	fn calculate_faces(&mut self) {
+		trace!("Calculating faces...");
+		// Reserve space for faces
+		let add = self.pre_faces.len() as isize - self.faces.len() as isize;
+		self.faces.reserve( if add < 0 { 0 } else { add as usize } );
+		
+		// Add default uv (0.0, 0.0)
+		self.uvs.push(vec2(0.0, 0.0));
+		let def_uv_idx = (self.uvs.len() - 1) as Idx;
+		
+		// Process faces
+		for f in self.pre_faces.iter() {
+			// Calculate normals
+			let normals = if f.x.norm.is_none() || f.y.norm.is_none() || f.z.norm.is_none() {
+				let v0 = self.vertices[f.x.vert as usize];
+				let v1 = self.vertices[f.y.vert as usize];
+				let v2 = self.vertices[f.z.vert as usize];
+				let n = (v1 - v0).cross(v2 - v0).normalize();
+				self.normals.push(n);
+				let i = (self.normals.len() - 1) as Idx;
+				vec3(f.x.norm.unwrap_or(i), f.y.norm.unwrap_or(i), f.z.norm.unwrap_or(i))
+			} else {
+				vec3(f.x.norm.unwrap()    , f.y.norm.unwrap()    , f.z.norm.unwrap()    )
+			};
+			let face = vec3(
+				IndexInfo::new(f.x.vert, f.x.uv.unwrap_or(def_uv_idx), normals.x),
+				IndexInfo::new(f.y.vert, f.y.uv.unwrap_or(def_uv_idx), normals.y),
+				IndexInfo::new(f.z.vert, f.z.uv.unwrap_or(def_uv_idx), normals.z));
+			self.faces.push(face);
+		}
 	}
 	
 	/// Validate the file
@@ -73,21 +140,21 @@ impl ObjFile {
 			}
 		}
 		
-		// Check if all faces are valid
-		for (i, f) in self.faces.iter().enumerate() {
-			fn check_face_vertex(i: usize, o: &ObjFile, f: Vector3<Idx>) -> GameResult<()> {
-				if f.x as usize >= o.vertices.len() {
-					return Err(format!("Invalid obj file ({}): Invalid face (index {}) vertex index: {}", &o.rel_path, i, f.x));
-				} else if f.y as usize >= o.uvs.len() {
-					return Err(format!("Invalid obj file ({}): Invalid face (index {}) uv index: {}", &o.rel_path, i, f.y));
-				} else if f.z as usize >= o.normals.len() {
-					return Err(format!("Invalid obj file ({}): Invalid face (index {}) normal index: {}", &o.rel_path, i, f.z));
+		// Check if all pre_faces are valid
+		for (i, f) in self.pre_faces.iter().enumerate() {
+			fn check_index_info(i: usize, o: &ObjFile, ii: PreIndexInfo) -> GameResult<()> {
+				if ii.vert as usize >= o.vertices.len() {
+					return Err(format!("Invalid obj file ({}): Invalid face (index {}) vertex index: {}", &o.rel_path, i, ii.vert));
+				} else if ii.uv.is_some() && ii.uv.unwrap() as usize >= o.uvs.len() {
+					return Err(format!("Invalid obj file ({}): Invalid face (index {}) uv index: {}", &o.rel_path, i, ii.uv.unwrap()));
+				} else if ii.norm.is_some() && ii.norm.unwrap() as usize >= o.normals.len() {
+					return Err(format!("Invalid obj file ({}): Invalid face (index {}) normal index: {}", &o.rel_path, i, ii.norm.unwrap()));
 				}
 				Ok(())
 			}
-			check_face_vertex(i, self, f.x)?;
-			check_face_vertex(i, self, f.y)?;
-			check_face_vertex(i, self, f.z)?;
+			check_index_info(i, self, f.x)?;
+			check_index_info(i, self, f.y)?;
+			check_index_info(i, self, f.z)?;
 		}
 		if self.material.is_none() {
 			warn!("Object file loaded without a material: {}", &self.rel_path);
@@ -184,19 +251,36 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 					// We need to subtract 1 if it is positive, because we count from 0 wheras .obj is from 1.
 					(if i >= 0 { i as usize - 1 } else { l - ((-i) as usize) }) as u32
 				}
-				fn process_face_vertex(state: &ParseState, f: &ObjFile, s: &str) -> GameResult<Vector3<Idx>> {
-					let mut f_it = s.split("/");
-					let f_indices: Vec<isize> = parseN(&state, 3, &mut f_it)?;
-					let i0 = process_index(f_indices[0], f.vertices.len());
-					let i1 = process_index(f_indices[1], f.uvs.len());
-					let i2 = process_index(f_indices[2], f.normals.len());
-					Ok(vec3(i0, i1, i2))
+				fn process_index_info(state: &ParseState, f: &ObjFile, s: &str) -> GameResult<PreIndexInfo> {
+					let mut iit = s.split("/");
+					let str_vert = iit.next().ok_or_else(|| state.to_error())?;
+					let str_uv = iit.next();
+					let str_norm = iit.next();
+					
+					let idx_vert = str_vert.parse().map_err(|_| state.to_error())?;
+					let idx_vert = process_index(idx_vert, f.vertices.len());
+					let idx_uv = match str_uv {
+						None | Some("") => None,
+						Some(s) => {
+							let idx = s.parse().map_err(|_| state.to_error())?;
+							Some(process_index(idx, f.uvs.len()))
+						}
+					};
+					let idx_norm = match str_norm {
+						None | Some("") => None,
+						Some(s) => {
+							let idx = s.parse().map_err(|_| state.to_error())?;
+							Some(process_index(idx, f.normals.len()))
+						}
+					};
+					//trace!("Face index: \"{}\" => v:{} uv:{:?} norm:{:?}", s, idx_vert, idx_uv, idx_norm);
+					Ok(PreIndexInfo::new(idx_vert, idx_uv, idx_norm))
 				}
 				let fs: Vec<String> = parseN(&state, 3, &mut args)?;
-				let v0 = process_face_vertex(&state, f, &fs[0])?;
-				let v1 = process_face_vertex(&state, f, &fs[1])?;
-				let v2 = process_face_vertex(&state, f, &fs[2])?;
-				f.faces.push(vec3(v0, v1, v2));
+				let v0 = process_index_info(&state, f, &fs[0])?;
+				let v1 = process_index_info(&state, f, &fs[1])?;
+				let v2 = process_index_info(&state, f, &fs[2])?;
+				f.pre_faces.push(vec3(v0, v1, v2));
 			},
 			"usemtl" => {
 				let m: String = parse1(&state, &mut args)?;

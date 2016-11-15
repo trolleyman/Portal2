@@ -124,14 +124,15 @@ impl Mesh {
 		for face in file.faces.iter() {
 			for vertex in [face.x, face.y, face.z].into_iter() {
 				let v = Vertex {
-					pos: array3(file.vertices[vertex.x as usize]),
-					uv: array2(file.uvs[vertex.y as usize]),
-					normal: array3(file.normals[vertex.z as usize]),
+					pos: array3(file.vertices[vertex.vert as usize]),
+					uv: array2(file.uvs[vertex.uv as usize]),
+					normal: array3(file.normals[vertex.norm as usize]),
 				};
 				vertices.push(v);
 			}
 		}
 		
+		debug!("{} vertices loaded.", vertices.len());
 		trace!("Vertices loaded: {:#?}", &vertices);
 		
 		// Upload vertex information to OpenGL

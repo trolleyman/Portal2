@@ -46,7 +46,16 @@ impl TextureBank {
 		&self.default_texture
 	}
 	
-	// Load the texture from a file, or the default if that doesn't work 
+	/// Load the texture from a file, or an error texture if that doesn't work.
+	/// 
+	/// The error texture is a pink and black checkerboard.
+	pub fn get_texture_or_error<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
+		self.get_texture_or_default(id)
+	}
+	
+	/// Load the texture from a file, or the default if that doesn't work
+	/// 
+	/// The default texture is a white pixel. 
 	pub fn get_texture_or_default<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
 		self.load_texture(id.clone())
 			.map_err(|e| {

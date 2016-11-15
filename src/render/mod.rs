@@ -7,9 +7,6 @@ use glium::{Depth, DepthTest, Frame, Program, Surface};
 use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
 use glium::index::{PrimitiveType, NoIndices};
 use glium::backend::Context;
-use glium::uniforms::MinifySamplerFilter;
-use glium::uniforms::MagnifySamplerFilter;
-use glium::uniforms::SamplerWrapFunction;
 
 pub use self::camera::Camera;
 pub use self::mesh::*;
@@ -23,9 +20,7 @@ mod texture;
 fn normalize_id(id: String) -> String {
 	use std::path::MAIN_SEPARATOR;
 	use std::path::is_separator;
-	
-	trace!("id: {}", id);
-	
+		
 	if id.contains(is_separator) {
 		let mut ret = String::with_capacity(id.len() + 1);
 		for sub in id.split(is_separator) {
@@ -33,10 +28,8 @@ fn normalize_id(id: String) -> String {
 			ret.push(MAIN_SEPARATOR);
 		}
 		ret.pop();
-		trace!("ret: {}", ret);
 		ret
 	} else {
-		trace!("ret: {}", id);
 		id
 	}
 }
@@ -74,7 +67,11 @@ impl Render {
 		let mat_mvp = mat_projection * self.mat_view * mat_model;
 		// TODO: Get a default mesh if failed to load mesh_id
 		let mesh = self.mesh_bank.get_mesh(mesh_id.clone()).unwrap();
-		let tex = self.tex_bank.get_texture_or_default(mesh.material.map_Kd.clone().unwrap_or_else(|| String::new()));
+		let tex = if let Some(t_name) = mesh.material.map_Kd.clone() {
+			self.tex_bank.get_texture_or_error(t_name)
+		} else {
+			self.tex_bank.default_texture()
+		};
 		let ret = f.draw(
 			&mesh.vertices,
 			NoIndices(PrimitiveType::TrianglesList),
@@ -83,11 +80,7 @@ impl Render {
 				u_mvp: array4x4(mat_mvp),
 				Ka: array3(mesh.material.Ka),
 				d: mesh.material.d,
-				map_Ka: tex.sampled()
-					.minify_filter(MinifySamplerFilter::Nearest)
-					.magnify_filter(MagnifySamplerFilter::Nearest)
-					.wrap_function(SamplerWrapFunction::Clamp)
-					.anisotropy(1),
+				map_Ka: tex,
 			},
 			&DrawParameters {
 				depth: Depth {
@@ -95,8 +88,6 @@ impl Render {
 					write: true,
 					..Default::default()
 				},
-				multisampling: false,
-				dithering: false,
 				backface_culling: BackfaceCullingMode::CullClockwise,
 				..Default::default()
 			}
