@@ -20,6 +20,27 @@ mod mesh;
 mod parse;
 mod texture;
 
+fn normalize_id(id: String) -> String {
+	use std::path::MAIN_SEPARATOR;
+	use std::path::is_separator;
+	
+	trace!("id: {}", id);
+	
+	if id.contains(is_separator) {
+		let mut ret = String::with_capacity(id.len() + 1);
+		for sub in id.split(is_separator) {
+			ret.push_str(sub);
+			ret.push(MAIN_SEPARATOR);
+		}
+		ret.pop();
+		trace!("ret: {}", ret);
+		ret
+	} else {
+		trace!("ret: {}", id);
+		id
+	}
+}
+
 pub struct Render {
 	#[allow(dead_code)]
 	ctx: Rc<Context>,
@@ -130,5 +151,27 @@ impl Default for Material {
 			bump: None,
 			disp: None,
 		}
+	}
+}
+
+#[cfg(test)]
+mod test {
+	#[test]
+	fn test_normalize_id() {
+		macro_rules! tni {
+			($input:expr, $exp_win:expr, $exp_oth:expr) => ({
+				let input = String::from($input);
+				let exp_win = $exp_win;
+				let exp_oth = $exp_oth;
+				let ret = super::normalize_id(input);
+				if cfg!(windows) {
+					assert_eq!(ret, exp_win);
+				} else {
+					assert_eq!(ret, exp_oth);
+				}
+			})
+		}
+		
+		tni!("res/thing\\other/thing2", "res\\thing\\other\\thing2", "res/thing/other/thing2");
 	}
 }

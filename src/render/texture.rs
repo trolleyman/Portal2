@@ -10,6 +10,7 @@ use glium::texture::{ClientFormat, RawImage2d, Texture2d};
 
 use vfs;
 use png::{self, Parameter};
+use super::normalize_id;
 
 pub type TextureID = String;
 
@@ -45,7 +46,7 @@ impl TextureBank {
 		&self.default_texture
 	}
 	
-	// Get
+	// Load the texture from a file, or the default if that doesn't work 
 	pub fn get_texture_or_default<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
 		self.load_texture(id.clone())
 			.map_err(|e| {
@@ -61,6 +62,8 @@ impl TextureBank {
 	
 	/// Gets a teture from the TextureBank
 	pub fn get_texture<'a>(&'a mut self, id: TextureID) -> GameResult<&'a Texture2d> {
+		// Normalize id first
+		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
 			self.cache.insert(id.clone(), tex_from_file(&self.ctx, &id)?);

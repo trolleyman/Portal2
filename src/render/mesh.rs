@@ -7,7 +7,8 @@ use std::fmt;
 use glium::backend::Context;
 use glium::VertexBuffer;
 
-use render::Material;
+use super::Material;
+use super::normalize_id;
 
 /// Meshes are identified by their filename
 pub type MeshID = String;
@@ -31,6 +32,8 @@ impl MeshBank {
 		
 	/// Gets a mesh from the MeshBank
 	pub fn get_mesh<'a>(&'a mut self, id: MeshID) -> GameResult<&'a Mesh> {
+		// Normalize id first
+		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
 			self.cache.insert(id.clone(), Mesh::from_file(&self.ctx, &id)?);
