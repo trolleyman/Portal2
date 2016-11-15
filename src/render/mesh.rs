@@ -15,6 +15,7 @@ pub type MeshID = String;
 
 pub const MESH_DIR: &'static str = "res/mesh/";
 pub const MESHID_TEST: &'static str = "res/mesh/test.obj";
+pub const MESHID_MONKEY: &'static str = "res/mesh/monkey.obj";
 
 pub struct MeshBank {
 	ctx: Rc<Context>,
