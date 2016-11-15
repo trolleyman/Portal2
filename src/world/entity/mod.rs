@@ -5,7 +5,7 @@ use glium::Frame;
 use render::Render;
 
 pub use self::simple::SimpleEntity;
-pub use self::rotating::RotatingEntity;
+pub use self::rotating::{RotatingEntity, RandomRotatingEntity};
 
 mod simple;
 mod rotating;
