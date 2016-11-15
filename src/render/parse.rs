@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::rc::Rc;
 
-use render::Material;
+use render::{TextureID, Material};
 
 use glium::Program;
 use glium::backend::Context;
@@ -96,6 +96,27 @@ impl ObjFile {
 	}
 }
 
+#[derive(Debug)]
+struct ParseState {
+	command: String,
+	lno: usize,
+	path: PathBuf,
+	rel_path: PathBuf,
+}
+impl ParseState {
+	pub fn new(command: String, lno: usize, path: PathBuf, rel_path: PathBuf) -> ParseState {
+		ParseState {
+			command: command,
+			lno: lno,
+			path: path,
+			rel_path: rel_path,
+		}
+	}
+	pub fn to_error(&self) -> String {
+		format!("Invalid command format `{}` at {}:{}", self.command, self.path.display(), self.lno)
+	}
+}
+
 fn parse_file(f: &mut ObjFile) -> GameResult<()> {
 	let mut s = String::new();
 	File::open(&f.path)
@@ -106,32 +127,13 @@ fn parse_file(f: &mut ObjFile) -> GameResult<()> {
 	parse_string(f, s)
 }
 
-#[derive(Debug)]
-struct ParseState {
-	command: String,
-	lno: usize,
-	path: PathBuf,
-}
-impl ParseState {
-	pub fn new(command: String, lno: usize, path: PathBuf) -> ParseState {
-		ParseState {
-			command: command,
-			lno: lno,
-			path: path,
-		}
-	}
-	pub fn to_error(&self) -> String {
-		format!("Invalid command format `{}` at location {}:{}", self.command, self.lno, self.path.display())
-	}
-}
-
 fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 	// Get an iterator that ignores comments and empty lines
 	let li = s.lines()
 		.map(|l| l.split("#").next().unwrap_or(""))
 		.filter(|&l| l != "");
 	
-	let mut state = ParseState::new(String::new(), 0, f.path.clone());
+	let mut state = ParseState::new(String::new(), 0, f.path.clone(), PathBuf::from(&f.rel_path));
 	
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
 		let mut args = line.split_whitespace();
@@ -144,16 +146,19 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 				let mtl_rel_path = args.next()
 					.ok_or_else(|| state.to_error())?;
 				
+				let mtl_rel_exe_path = remove_parents(&Path::new(&f.rel_path).join("..").join(&mtl_rel_path));
+				trace!("mtl_rel_exe_path: {}", mtl_rel_exe_path.display());
+				
 				// Get the path of the mtl lib, as it is relative to the current file.
 				let mut mtl_path = f.path.clone();
 				mtl_path.pop();
-				mtl_path.push(mtl_rel_path);
+				let mtl_path = mtl_path.join(mtl_rel_path);
 				// Load the mtl file
 				let mut mtl_s = String::new();
 				File::open(&mtl_path)
 					.and_then(|mut f| f.read_to_string(&mut mtl_s))
 					.map_err(|e| format!("Invalid mtl file ({}): {}", e, mtl_path.display()))?;
-				parse_mtl_string(f, &mtl_path, &mtl_s)?;
+				parse_mtl_string(f, &mtl_path, &mtl_rel_exe_path, &mtl_s)?;
 			},
 			"o" => {
 				if f.name.is_some() {
@@ -201,14 +206,15 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 				// TODO: Figure out what this command does. For now, just ignore it.
 			},
 			_ => {
-				return Err(format!("Unrecognized command `{}` at location {}:{}", command, lno, f.rel_path));
+				return Err(format!("Unrecognized command `{}` at {}:{}", command, f.rel_path, lno));
 			}
 		}
 	}
 	Ok(())
 }
 
-fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
+/// rel_path = the path of the mtl file relative to the exe.
+fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> GameResult<()> {
 	// Get lines that filter out comments & empty lines
 	let li = s.lines()
 		.map(|l| l.split("#").next().unwrap_or(""))
@@ -216,7 +222,7 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 	
 	let mut current_mat_name = None;
 	let mut current_mat = Material::default();
-	let mut state = ParseState::new(String::new(), 0, path.to_path_buf());
+	let mut state = ParseState::new(String::new(), 0, path.to_path_buf(), rel_path.to_path_buf());
 	
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
 		let mut args = line.split_whitespace();
@@ -245,10 +251,11 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, s: &str) -> GameResult<()> {
 			"illum" => { /* TODO: Implement this command */ }
 			"map_Kd" => {
 				let id: String = parse1(&state, &mut args)?;
+				let id = parse_texture_path(&state, &rel_path, &id);
 				current_mat.map_Kd = Some(id);
 			},
 			_ => {
-				return Err(format!("Unrecognized command `{}` at location {}:{}", state.command, state.lno, state.path.display()))
+				return Err(format!("Unrecognized command `{}` at {}:{}", state.command, state.path.display(), state.lno))
 			}
 		}
 	}
@@ -280,6 +287,41 @@ fn parseN<'a, F: FromStr, I>(st: &ParseState, n: usize, it: &mut I) -> GameResul
 	Ok(ret)
 }
 
+// Removes all unnecesary parents in a path
+fn remove_parents(p: &Path) -> PathBuf {
+	let mut ret = PathBuf::new();
+	let mut n = 0;
+	for c in p.components() {
+		let c_str = c.as_os_str();
+		if c_str == ".." && n == 0 {
+			ret.push(c_str);
+		} else if c_str == ".." {
+			ret.pop();
+			n -= 1;
+		} else {
+			ret.push(c_str);
+			n += 1;
+		}
+	}
+	ret
+}
+
+fn parse_texture_path(state: &ParseState, base_path: &Path, id: &str) -> TextureID {
+	trace!("id: {}", id);
+	let id = Path::new(&id);
+	if id.is_absolute() {
+		warn!("Absolute path detected in mtl file at {}:{}: {}", state.path.display(), state.lno, id.display());
+		id.to_string_lossy().into_owned()
+	} else {
+		let mut ret = base_path.to_path_buf();
+		ret.push("..");
+		ret.push(&id);
+		let ret = remove_parents(&ret);
+		trace!("ret: {}", ret.display());
+		ret.to_string_lossy().into_owned()
+	}
+}
+
 pub fn load_shader_program(ctx: &Rc<Context>, rel_base: &str) -> GameResult<Program> {
 	// TODO: Handle more shader types
 	let base = vfs::canonicalize_exe(rel_base);
@@ -301,4 +343,24 @@ pub fn load_shader_program(ctx: &Rc<Context>, rel_base: &str) -> GameResult<Prog
 		.map_err(|e| format!("Could not parse shader {}\n{}", base.display(), e))?;
 	
 	Ok(prog)
+}
+
+#[cfg(test)]
+mod test {
+	#[test]
+	fn test_remove_parents() {
+		use std::path::Path;
+		macro_rules! trp {
+			($input:expr, $expect:expr) => ({
+				let input = Path::new($input);
+				let expected = Path::new($expect);
+				let ret = super::remove_parents(&input);
+				assert_eq!(ret, expected);
+			})
+		}
+		
+		trp!("thing/other/../no_wait/", "thing/no_wait/");
+		trp!("../thing/../other/", "../other/");
+		trp!("../../../thing/thing2/../o", "../../../thing/o");
+	}
 }
