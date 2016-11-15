@@ -14,6 +14,7 @@ pub fn example_world() -> World {
 	es.push(box entity::RandomRotatingEntity::new(vec3(3.0, 0.0, -5.0), render::MESHID_MONKEY.into()));
 	es.push(box entity::RotatingEntity::new(vec3(-5.0, -1.0, -5.0), vec3(0.0, 1.0, 0.0), Rad(1.0), render::MESHID_TEAPOT.into()));
 	es.push(box entity::SimpleEntity::new(vec3(0.0, 0.0, 0.0), render::MESHID_FLOOR.into()));
+	es.push(box entity::RotatingEntity::new(vec3(0.0, 3.0, -5.0), vec3(0.0, 1.0, 0.0), Rad(0.5), render::MESHID_EARTH.into()));
 	
 	World {
 		camera: cam,
