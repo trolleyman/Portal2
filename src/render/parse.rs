@@ -197,12 +197,12 @@ fn parse_file(f: &mut ObjFile) -> GameResult<()> {
 fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 	// Get an iterator that ignores comments and empty lines
 	let li = s.lines()
-		.map(|l| l.split("#").next().unwrap_or(""))
-		.filter(|&l| l != "");
+		.map(|l| l.split("#").next().unwrap_or(""));
 	
 	let mut state = ParseState::new(String::new(), 0, f.path.clone(), PathBuf::from(&f.rel_path));
 	
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
+		if line == "" { continue; }
 		let mut args = line.split_whitespace();
 		let command = args.next().unwrap_or("");
 		state.command = command.to_string();
@@ -301,14 +301,14 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> GameResult<()> {
 	// Get lines that filter out comments & empty lines
 	let li = s.lines()
-		.map(|l| l.split("#").next().unwrap_or(""))
-		.filter(|&l| l != "");
+		.map(|l| l.split("#").next().unwrap_or(""));
 	
 	let mut current_mat_name = None;
 	let mut current_mat = Material::default();
 	let mut state = ParseState::new(String::new(), 0, path.to_path_buf(), rel_path.to_path_buf());
 	
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
+		if line == "" { continue; }
 		let mut args = line.split_whitespace();
 		let command = args.next().unwrap_or("");
 		state.command = command.to_string();
