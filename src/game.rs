@@ -119,9 +119,12 @@ impl Game {
 				if let Some(win) = self.win.get_window() {
 					if let Some((w, h)) = win.get_outer_size() {
 						let mid = (w as i32 / 2, h as i32 / 2);
-						trace!("Mid: {}, {}", mid.0, mid.1);
-						self.state.mid_screen = Some(mid);
-						win.set_cursor_position(mid.0, mid.1);
+						if win.set_cursor_position(mid.0, mid.1).is_ok() {
+							trace!("Mid: {}, {}", mid.0, mid.1);
+							self.state.mid_screen = Some(mid);
+						} else {
+							warn!("set_cursor_position failed");
+						}
 					}
 				}
 			}
