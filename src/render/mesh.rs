@@ -88,7 +88,7 @@ implement_vertex!(Vertex, pos, normal, uv);
 impl fmt::Debug for Vertex {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		let alt = f.alternate();
-		let spacing = if alt { "\n\t" } else { " " };
+		let spacing = if alt { "\n    " } else { " " };
 		f.write_str("Vertex {")?;
 		f.write_str(spacing)?;
 		write!(f, "pos: {:?},", self.pos)?;
