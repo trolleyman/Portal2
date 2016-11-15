@@ -18,7 +18,7 @@ pub const TEX_DIR: &'static str = "res/tex/";
 
 pub struct TextureBank {
 	ctx: Rc<Context>,
-	cache: HashMap<TextureID, Rc<Texture2d>>,
+	cache: HashMap<TextureID, GameResult<Rc<Texture2d>>>,
 	default_texture: Rc<Texture2d>,
 }
 
@@ -57,16 +57,8 @@ impl TextureBank {
 	/// 
 	/// The default texture is a white pixel. 
 	pub fn get_texture_or_default(&mut self, id: TextureID) -> Rc<Texture2d> {
-		self.load_texture(id.clone())
-			.map_err(|e| {
-				warn!("Could not load texture ({}): {}", id, e);
-				warn!("Using default texture");
-			}).ok();
-		
-		match self.cache.get(&id) {
-			Some(t) => t.clone(),
-			None => self.default_texture()
-		}
+		self.get_texture(id.clone())
+			.unwrap_or(self.default_texture())
 	}
 	
 	/// Gets a teture from the TextureBank
@@ -75,10 +67,19 @@ impl TextureBank {
 		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
-			self.cache.insert(id.clone(), Rc::new(tex_from_file(&self.ctx, &id)?));
-			info!("Loaded texture: {}", &id);
+			let res = match tex_from_file(&self.ctx, &id).map(|t| Rc::new(t)) {
+				Ok(t) => {
+					info!("Loaded texture: {}", &id);
+					Ok(t)
+				},
+				Err(e) => {
+					warn!("Could not load texture ({}): {}", &id, &e);
+					Err(e)
+				}
+			};
+			self.cache.insert(id.clone(), res);
 		}
-		Ok(self.cache.get(&id).unwrap().clone())
+		self.cache.get(&id).unwrap().clone()
 	}
 	
 	/// Loads a texture into the TextureBank
@@ -109,10 +110,7 @@ impl TextureBank {
 					if !id.ends_with(".png") {
 						continue;
 					}
-					match self.load_texture(id.clone()) {
-						Err(e) => warn!("Could not load texture ({}): {}", id, e),
-						_ => {}
-					}
+					self.load_texture(id.clone()).ok();
 				},
 				_ => {} // Ignore files that return an error when iterating over them
 			}

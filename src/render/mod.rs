@@ -53,7 +53,7 @@ impl Render {
 		let mat_view = c.view_matrix();
 		Ok(Render {
 			ctx: ctx.clone(),
-			mesh_bank: MeshBank::new(ctx.clone()),
+			mesh_bank: MeshBank::new(ctx.clone())?,
 			tex_bank: TextureBank::new(ctx.clone())?,
 			phong_program: parse::load_shader_program(&ctx, "res/shader/phong")?,
 			camera: c,
@@ -89,7 +89,7 @@ impl Render {
 		let mat_projection = self.camera.projection_matrix(dims.0, dims.1);
 		let mat_mvp = mat_projection * self.mat_view * mat_model;
 		// TODO: Get a default mesh if failed to load mesh_id
-		let mesh = self.mesh_bank.get_mesh(mesh_id.clone()).unwrap();
+		let mesh = self.mesh_bank.get_mesh_or_default(mesh_id.clone());
 		let map_Ka = get_tex(&mut self.tex_bank, mesh.material.map_Ka.clone());
 		let map_Kd = get_tex(&mut self.tex_bank, mesh.material.map_Kd.clone());
 		let ret = f.draw(

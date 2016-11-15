@@ -17,31 +17,64 @@ pub const MESH_DIR: &'static str = "res/mesh/";
 pub const MESHID_TEST: &'static str = "res/mesh/test.obj";
 pub const MESHID_MONKEY: &'static str = "res/mesh/monkey.obj";
 pub const MESHID_TEAPOT: &'static str = "res/mesh/teapot.obj";
+pub const MESHID_FLOOR: &'static str = "res/mesh/floor.obj";
 
 pub struct MeshBank {
 	ctx: Rc<Context>,
-	cache: HashMap<MeshID, Mesh>,
+	cache: HashMap<MeshID, GameResult<Rc<Mesh>>>,
+	default_mesh: Rc<Mesh>,
 }
 impl MeshBank {
-	pub fn new(ctx: Rc<Context>) -> MeshBank {
+	pub fn new(ctx: Rc<Context>) -> GameResult<MeshBank> {
+		let buffer = VertexBuffer::new(&ctx, &vec![])
+			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
+		
+		let def = Mesh {
+			material: Material::default(),
+			vertices: buffer,
+		};
+		
 		let mut mb = MeshBank {
 			ctx: ctx,
 			cache: HashMap::new(),
+			default_mesh: Rc::new(def),
 		};
 		mb.load_meshes();
-		mb
+		Ok(mb)
 	}
-		
+	
+	/// The default mesh
+	pub fn default_mesh(&self) -> Rc<Mesh> {
+		self.default_mesh.clone()
+	}
+	
+	/// Gets a mesh from the MeshBank.
+	/// 
+	/// If there was an error, returns a default mesh (No vertices)
+	pub fn get_mesh_or_default(&mut self, id: MeshID) -> Rc<Mesh> {
+		self.get_mesh(id.clone())
+			.unwrap_or(self.default_mesh())
+	}
+	
 	/// Gets a mesh from the MeshBank
-	pub fn get_mesh<'a>(&'a mut self, id: MeshID) -> GameResult<&'a Mesh> {
+	pub fn get_mesh(&mut self, id: MeshID) -> GameResult<Rc<Mesh>> {
 		// Normalize id first
 		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
-			self.cache.insert(id.clone(), Mesh::from_file(&self.ctx, &id)?);
-			info!("Loaded mesh: {}", &id);
+			let res = match Mesh::from_file(&self.ctx, &id).map(|t| Rc::new(t)) {
+				Ok(t) => {
+					info!("Loaded mesh: {}", &id);
+					Ok(t)
+				},
+				Err(e) => {
+					warn!("Could not load mesh ({}): {}", &id, &e);
+					Err(e)
+				}
+			};
+			self.cache.insert(id.clone(), res);
 		}
-		Ok(self.cache.get(&id).unwrap())
+		self.cache.get(&id).unwrap().clone()
 	}
 	
 	/// Loads a mesh into the MeshBank
@@ -72,10 +105,7 @@ impl MeshBank {
 					if !id.ends_with(".obj") {
 						continue;
 					}
-					match self.load_mesh(id.clone()) {
-						Err(e) => warn!("Could not load mesh ({}): {}", id, e),
-						_ => {}
-					}
+					self.load_mesh(id.clone()).ok();
 				},
 				_ => {} // Ignore files that return an error when iterating over them
 			}
@@ -135,7 +165,7 @@ impl Mesh {
 		}
 		
 		debug!("{} vertices loaded.", vertices.len());
-		trace!("Vertices loaded: {:#?}", &vertices);
+		//trace!("Vertices loaded: {:#?}", &vertices);
 		
 		// Upload vertex information to OpenGL
 		let buffer = VertexBuffer::new(ctx, &vertices)

@@ -364,6 +364,13 @@ fn parse_vec3<'a, I>(st: &ParseState, it: &mut I) -> GameResult<Vec3>
 fn parse1<'a, F: FromStr, I>(st: &ParseState, it: &mut I) -> GameResult<F>
 		where I: Iterator<Item=&'a str> {
 	let a = it.next().ok_or_else(|| st.to_error())?;
+	if it.next().is_some() { return Err(st.to_error()); }
+	a.parse().map_err(|_| st.to_error())
+}
+
+fn parseN_it<'a, F: FromStr, I>(st: &ParseState, it: &mut I) -> GameResult<F>
+		where I: Iterator<Item=&'a str> {
+	let a = it.next().ok_or_else(|| st.to_error())?;
 	a.parse().map_err(|_| st.to_error())
 }
 
@@ -371,7 +378,7 @@ fn parseN<'a, F: FromStr, I>(st: &ParseState, n: usize, it: &mut I) -> GameResul
 		where I: Iterator<Item=&'a str> {
 	let mut ret = Vec::with_capacity(n);
 	for _ in 0..n {
-		ret.push(parse1(st, it)?);
+		ret.push(parseN_it(st, it)?);
 	}
 	Ok(ret)
 }
