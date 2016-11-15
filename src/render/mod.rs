@@ -86,7 +86,8 @@ impl Render {
 				map_Ka: tex.sampled()
 					.minify_filter(MinifySamplerFilter::Nearest)
 					.magnify_filter(MagnifySamplerFilter::Nearest)
-					.wrap_function(SamplerWrapFunction::Clamp),
+					.wrap_function(SamplerWrapFunction::Clamp)
+					.anisotropy(1),
 			},
 			&DrawParameters {
 				depth: Depth {
@@ -94,6 +95,8 @@ impl Render {
 					write: true,
 					..Default::default()
 				},
+				multisampling: false,
+				dithering: false,
 				backface_culling: BackfaceCullingMode::CullClockwise,
 				..Default::default()
 			}
