@@ -7,6 +7,7 @@ use std::fmt;
 use glium::backend::Context;
 use glium::VertexBuffer;
 
+use game::duration_to_millis;
 use super::Material;
 use super::normalize_id;
 
@@ -63,9 +64,11 @@ impl MeshBank {
 		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
+			use std::time::Instant;
+			let t_start = Instant::now();
 			let res = match Mesh::from_file(&self.ctx, &id).map(|t| Rc::new(t)) {
 				Ok(t) => {
-					info!("Loaded mesh: {}", &id);
+					info!("Loaded mesh: {} ({}ms)", &id, duration_to_millis(t_start.elapsed()));
 					Ok(t)
 				},
 				Err(e) => {

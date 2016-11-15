@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use glium::backend::Context;
 use glium::texture::{ClientFormat, RawImage2d, Texture2d};
 
+use game::duration_to_millis;
 use vfs;
 use png::{self, Parameter};
 use super::normalize_id;
@@ -67,9 +68,11 @@ impl TextureBank {
 		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
+			use std::time::Instant;
+			let t_start = Instant::now();
 			let res = match tex_from_file(&self.ctx, &id).map(|t| Rc::new(t)) {
 				Ok(t) => {
-					info!("Loaded texture: {}", &id);
+					info!("Loaded texture: {} ({}ms)", &id, duration_to_millis(t_start.elapsed()));
 					Ok(t)
 				},
 				Err(e) => {
