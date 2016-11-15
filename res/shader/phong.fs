@@ -19,7 +19,8 @@ void main() {
 	// l points from the surface to the light
 	vec3 l = u_light_pos - t_pos;
 	// To get the brightness, we calculate angle of incidence.
-	float diffuse_brightness = clamp(dot(t_normal, l), 0.0, 1.0);
+	float diffuse_brightness = dot(t_normal, l) / (length(l) * length(t_normal));
+	diffuse_brightness = clamp(diffuse_brightness, 0.0, 1.0);
 	
 	vec4 ambient = vec4(u_Ka, u_d) * texture2D(u_map_Ka, t_uv) * u_light_ambient;
 	vec4 diffuse = vec4(u_Kd, u_d) * texture2D(u_map_Kd, t_uv) * u_light_diffuse * diffuse_brightness;
