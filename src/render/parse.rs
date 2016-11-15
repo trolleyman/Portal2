@@ -332,7 +332,12 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 			"Ke" => { current_mat.Ke = parse_vec3(&state, &mut args)?; },
 			"Ni" => { /* TODO: Figure out what this command is */ },
 			"d"  => { current_mat.d = parse1(&state, &mut args)?; },
-			"illum" => { /* TODO: Implement this command */ }
+			"illum" => { /* TODO: Implement this command */ },
+			"map_Ka" => {
+				let id: String = parse1(&state, &mut args)?;
+				let id = parse_texture_path(&state, &rel_path, &id);
+				current_mat.map_Ka = Some(id);
+			},
 			"map_Kd" => {
 				let id: String = parse1(&state, &mut args)?;
 				let id = parse_texture_path(&state, &rel_path, &id);

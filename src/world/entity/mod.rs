@@ -2,9 +2,15 @@ use prelude::*;
 
 use glium::Frame;
 
-use render::{MeshID, Render};
+use render::Render;
 
-#[derive(Debug, Clone)]
+pub use self::simple::SimpleEntity;
+pub use self::rotating::RotatingEntity;
+
+mod simple;
+mod rotating;
+
+#[derive(Debug, Copy, Clone)]
 pub struct Transform {
 	pos: Vec3,
 	rot: Quat,
@@ -68,20 +74,9 @@ impl From<Vec3> for Transform {
 	}
 }
 
-#[allow(dead_code)]
-pub struct Entity {
-	pub trans: Transform,
-	pub mesh_id: MeshID,
-}
-impl Entity {
-	pub fn new<T: Into<Transform>>(trans: T, mesh_id: MeshID) -> Entity {
-		Entity {
-			trans: trans.into(),
-			mesh_id: mesh_id,
-		}
-	}
-	
-	pub fn render(&self, r: &mut Render, f: &mut Frame) {
-		r.draw_mesh(f, self.mesh_id.clone(), self.trans.mat());
-	}
+pub trait Entity {
+	/// Renders the entity to a frame
+	fn render(&self, r: &mut Render, f: &mut Frame);
+	/// Updates the entity every frame
+	fn tick(&mut self, dt: Flt);
 }

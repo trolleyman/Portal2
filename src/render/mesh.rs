@@ -110,6 +110,7 @@ impl fmt::Debug for Vertex {
 pub struct Mesh {
 	pub material: Material,
 	pub vertices: VertexBuffer<Vertex>,
+	// TODO: Don't use NoIndices, as it is extremely wasteful.
 }
 impl Mesh {
 	pub fn from_file(ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {

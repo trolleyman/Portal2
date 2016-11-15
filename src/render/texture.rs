@@ -18,8 +18,8 @@ pub const TEX_DIR: &'static str = "res/tex/";
 
 pub struct TextureBank {
 	ctx: Rc<Context>,
-	cache: HashMap<TextureID, Texture2d>,
-	default_texture: Texture2d,
+	cache: HashMap<TextureID, Rc<Texture2d>>,
+	default_texture: Rc<Texture2d>,
 }
 
 impl TextureBank {
@@ -35,28 +35,28 @@ impl TextureBank {
 		let mut tb = TextureBank {
 			ctx: ctx,
 			cache: HashMap::new(),
-			default_texture: dt,
+			default_texture: Rc::new(dt),
 		};
 		tb.load_textures();
 		Ok(tb)
 	}
 	
 	/// Returns the default texture (one opaque white pixel)
-	pub fn default_texture<'a>(&'a self) -> &'a Texture2d {
-		&self.default_texture
+	pub fn default_texture(&self) -> Rc<Texture2d> {
+		self.default_texture.clone()
 	}
 	
 	/// Load the texture from a file, or an error texture if that doesn't work.
 	/// 
 	/// The error texture is a pink and black checkerboard (TODO: For now it is the same as default_texture).
-	pub fn get_texture_or_error<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
+	pub fn get_texture_or_error(&mut self, id: TextureID) -> Rc<Texture2d> {
 		self.get_texture_or_default(id)
 	}
 	
 	/// Load the texture from a file, or the default if that doesn't work
 	/// 
 	/// The default texture is a white pixel. 
-	pub fn get_texture_or_default<'a>(&'a mut self, id: TextureID) -> &'a Texture2d {
+	pub fn get_texture_or_default(&mut self, id: TextureID) -> Rc<Texture2d> {
 		self.load_texture(id.clone())
 			.map_err(|e| {
 				warn!("Could not load texture ({}): {}", id, e);
@@ -64,21 +64,21 @@ impl TextureBank {
 			}).ok();
 		
 		match self.cache.get(&id) {
-			Some(t) => t,
-			None => &self.default_texture
+			Some(t) => t.clone(),
+			None => self.default_texture()
 		}
 	}
 	
 	/// Gets a teture from the TextureBank
-	pub fn get_texture<'a>(&'a mut self, id: TextureID) -> GameResult<&'a Texture2d> {
+	pub fn get_texture(&mut self, id: TextureID) -> GameResult<Rc<Texture2d>> {
 		// Normalize id first
 		let id = normalize_id(id);
 		// If cache doesn't exist, loads it from a file.
 		if self.cache.get(&id).is_none() {
-			self.cache.insert(id.clone(), tex_from_file(&self.ctx, &id)?);
+			self.cache.insert(id.clone(), Rc::new(tex_from_file(&self.ctx, &id)?));
 			info!("Loaded texture: {}", &id);
 		}
-		Ok(self.cache.get(&id).unwrap())
+		Ok(self.cache.get(&id).unwrap().clone())
 	}
 	
 	/// Loads a texture into the TextureBank

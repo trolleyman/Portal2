@@ -72,7 +72,7 @@ impl Game {
 		// Create the world
 		let world = World::new()?;
 		// And the renderer
-		let ren = Render::new(win.get_context().clone(), world.camera().clone())?;
+		let ren = Render::new(win.get_context().clone(), world.camera().clone(), world.light().clone())?;
 		// And the GameState
 		let state = GameState::default();
 		
@@ -112,7 +112,7 @@ impl Game {
 			// Process events
 			let es = self.process_events();
 			
-			// Update world & handle events
+			// Handle events
 			self.handle_events(dt, es);
 			// Center the cursor if focused
 			if self.state.focused {
@@ -128,6 +128,9 @@ impl Game {
 					}
 				}
 			}
+			
+			// Tick world
+			self.world.tick(dt);
 			
 			// Clear frame
 			let mut frame = self.win.draw();

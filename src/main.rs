@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-#![feature(type_ascription, slice_patterns)]
+#![feature(box_syntax, type_ascription, slice_patterns)]
 extern crate cgmath as cg;
 #[macro_use]
 extern crate glium;
