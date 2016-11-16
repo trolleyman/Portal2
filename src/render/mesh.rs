@@ -223,7 +223,7 @@ impl Mesh {
 				}
 			}
 		}
-		debug!("{} vertices, {} indices loaded.", vertices.len(), indices.len());
+		debug!("{} vertices, {} indices loaded ({}).", vertices.len(), indices.len(), indices.len() as isize - vertices.len() as isize);
 		//trace!("Vertices loaded: {:#?}", &vertices);
 		
 		// Upload vertex information to OpenGL
