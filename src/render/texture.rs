@@ -17,6 +17,18 @@ pub type TextureID = String;
 
 pub const TEX_DIR: &'static str = "res/tex/";
 
+#[derive(Debug, Copy, Clone)]
+pub struct TextureOptions {
+	pub uv_scale: Vec2,
+}
+impl Default for TextureOptions {
+	fn default() -> TextureOptions {
+		TextureOptions {
+			uv_scale: vec2(1.0, 1.0),
+		}
+	}
+}
+
 pub struct TextureBank {
 	ctx: Rc<Context>,
 	cache: HashMap<TextureID, GameResult<Rc<Texture2d>>>,

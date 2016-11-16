@@ -72,11 +72,11 @@ impl Render {
 	}
 	
 	pub fn draw_mesh(&mut self, f: &mut Frame, mesh_id: MeshID, mat_model: Mat4) {
-		fn get_tex(tex_bank: &mut TextureBank, id: Option<TextureID>) -> Rc<Texture2d> {
-			if let Some(id) = id {
-				tex_bank.get_texture_or_error(id)
+		fn get_tex(tex_bank: &mut TextureBank, id: Option<(TextureID, TextureOptions)>) -> (Rc<Texture2d>, TextureOptions) {
+			if let Some((id, opt)) = id {
+				(tex_bank.get_texture_or_error(id), opt)
 			} else {
-				tex_bank.default_texture()
+				(tex_bank.default_texture(), TextureOptions::default())
 			}
 		}
 		fn sample_tex<'a>(t: &'a Rc<Texture2d>) -> Sampler<'a, Texture2d> {
@@ -105,8 +105,10 @@ impl Render {
 				u_Ka: array3(mesh.material.Ka),
 				u_Kd: array3(mesh.material.Kd),
 				u_d: mesh.material.d,
-				u_map_Ka: sample_tex(&map_Ka),
-				u_map_Kd: sample_tex(&map_Kd),
+				u_map_Ka: sample_tex(&map_Ka.0),
+				u_map_Ka_uv_scale: array2(map_Ka.1.uv_scale),
+				u_map_Kd: sample_tex(&map_Kd.0),
+				u_map_Kd_uv_scale: array2(map_Kd.1.uv_scale),
 			},
 			&DrawParameters {
 				depth: Depth {
@@ -180,21 +182,21 @@ pub struct Material {
 	/// Transparency
 	pub d: Flt,
 	/// Ambient texture map
-	pub map_Ka: Option<TextureID>,
+	pub map_Ka: Option<(TextureID, TextureOptions)>,
 	/// Diffuse texture map
-	pub map_Kd: Option<TextureID>,
+	pub map_Kd: Option<(TextureID, TextureOptions)>,
 	/// Specular color texture map (TODO)
-	pub map_Ks: Option<TextureID>,
+	pub map_Ks: Option<(TextureID, TextureOptions)>,
 	/// Emissive texture map (TODO)
-	pub map_Ke: Option<TextureID>,
+	pub map_Ke: Option<(TextureID, TextureOptions)>,
 	/// Specular highlight component texture map (TODO)
-	pub map_Ns: Option<TextureID>,
+	pub map_Ns: Option<(TextureID, TextureOptions)>,
 	/// Alpha texture map (TODO)
-	pub map_d: Option<TextureID>,
+	pub map_d: Option<(TextureID, TextureOptions)>,
 	/// Bump map (TODO)
-	pub bump: Option<TextureID>,
+	pub bump: Option<(TextureID, TextureOptions)>,
 	/// Displacement map (TODO)
-	pub disp: Option<TextureID>,
+	pub disp: Option<(TextureID, TextureOptions)>,
 }
 impl Default for Material {
 	fn default() -> Material {

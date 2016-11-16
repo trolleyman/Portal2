@@ -10,7 +10,8 @@ uniform vec4 u_light_diffuse;
 uniform vec3 u_light_pos;
 
 in vec3 t_pos;
-in vec2 t_uv;
+in vec2 t_uv_Ka;
+in vec2 t_uv_Kd;
 in vec3 t_normal;
 
 out vec4 out_col;
@@ -22,7 +23,7 @@ void main() {
 	float diffuse_brightness = dot(t_normal, l) / (length(l) * length(t_normal));
 	diffuse_brightness = clamp(diffuse_brightness, 0.0, 1.0);
 	
-	vec4 ambient = vec4(u_Ka, u_d) * texture2D(u_map_Ka, t_uv) * u_light_ambient;
-	vec4 diffuse = vec4(u_Kd, u_d) * texture2D(u_map_Kd, t_uv) * u_light_diffuse * diffuse_brightness;
+	vec4 ambient = vec4(u_Ka, u_d) * texture2D(u_map_Ka, t_uv_Ka) * u_light_ambient;
+	vec4 diffuse = vec4(u_Kd, u_d) * texture2D(u_map_Kd, t_uv_Kd) * u_light_diffuse * diffuse_brightness;
 	out_col = ambient + diffuse;
 }

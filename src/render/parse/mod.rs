@@ -4,13 +4,14 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use std::rc::Rc;
 
-use render::{TextureID, Material};
+use render::{TextureID, TextureOptions, Material};
 
 use glium::Program;
 use glium::backend::Context;
+
+mod util;
 
 use vfs;
 
@@ -164,7 +165,7 @@ impl ObjFile {
 }
 
 #[derive(Debug)]
-struct ParseState {
+pub struct ParseState {
 	command: String,
 	lno: usize,
 	path: PathBuf,
@@ -213,7 +214,7 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 				let mtl_rel_path = args.next()
 					.ok_or_else(|| state.to_error())?;
 				
-				let mtl_rel_exe_path = remove_parents(&Path::new(&f.rel_path).join("..").join(&mtl_rel_path));
+				let mtl_rel_exe_path = util::remove_parents(&Path::new(&f.rel_path).join("..").join(&mtl_rel_path));
 				trace!("mtl_rel_exe_path: {}", mtl_rel_exe_path.display());
 				
 				// Get the path of the mtl lib, as it is relative to the current file.
@@ -231,18 +232,18 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 				if f.name.is_some() {
 					warn!("Object name redefined at location {}:{}", lno, f.rel_path);
 				}
-				f.name = Some(parse1(&state, &mut args)?);
+				f.name = Some(util::parse1_only(&state, &mut args)?);
 			},
 			"v" => {
-				let v = parse_vec3(&state, &mut args)?;
+				let v = util::parse_vec3_only(&state, &mut args)?;
 				f.vertices.push(v);
 			},
 			"vt" => {
-				let v = parseN(&state, 2, &mut args)?;
+				let v = util::parseN_only(&state, 2, &mut args)?;
 				f.uvs.push(vec2(v[0], v[1]));
 			},
 			"vn" => {
-				let v = parse_vec3(&state, &mut args)?;
+				let v = util::parse_vec3_only(&state, &mut args)?;
 				f.normals.push(v.normalize());
 			},
 			"f" => {
@@ -256,6 +257,8 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 					let str_vert = iit.next().ok_or_else(|| state.to_error())?;
 					let str_uv = iit.next();
 					let str_norm = iit.next();
+					// Ensure that "1/2/3/" fails
+					if iit.next().is_some() { return Err(state.to_error()); }
 					
 					let idx_vert = str_vert.parse().map_err(|_| state.to_error())?;
 					let idx_vert = process_index(idx_vert, f.vertices.len());
@@ -276,14 +279,14 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 					//trace!("Face index: \"{}\" => v:{} uv:{:?} norm:{:?}", s, idx_vert, idx_uv, idx_norm);
 					Ok(PreIndexInfo::new(idx_vert, idx_uv, idx_norm))
 				}
-				let fs: Vec<String> = parseN(&state, 3, &mut args)?;
+				let fs: Vec<String> = util::parseN_only(&state, 3, &mut args)?;
 				let v0 = process_index_info(&state, f, &fs[0])?;
 				let v1 = process_index_info(&state, f, &fs[1])?;
 				let v2 = process_index_info(&state, f, &fs[2])?;
 				f.pre_faces.push(vec3(v0, v1, v2));
 			},
 			"usemtl" => {
-				let m: String = parse1(&state, &mut args)?;
+				let m: String = util::parse1_only(&state, &mut args)?;
 				f.material = Some(m);
 			},
 			"s" => {
@@ -320,28 +323,26 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 					f.materials.insert(name, current_mat.clone());
 					current_mat = Material::default();
 				}
-				current_mat_name = Some(parse1(&state, &mut args)?);
+				current_mat_name = Some(util::parse1_only(&state, &mut args)?);
 			},
 			"Ns" => {
-				let i = parse1(&state, &mut args)?;
+				let i = util::parse1_only(&state, &mut args)?;
 				current_mat.Ns = i;
 			}
-			"Ka" => { current_mat.Ka = parse_vec3(&state, &mut args)?; },
-			"Kd" => { current_mat.Kd = parse_vec3(&state, &mut args)?; },
-			"Ks" => { current_mat.Ks = parse_vec3(&state, &mut args)?; },
-			"Ke" => { current_mat.Ke = parse_vec3(&state, &mut args)?; },
+			"Ka" => { current_mat.Ka = util::parse_vec3_only(&state, &mut args)?; },
+			"Kd" => { current_mat.Kd = util::parse_vec3_only(&state, &mut args)?; },
+			"Ks" => { current_mat.Ks = util::parse_vec3_only(&state, &mut args)?; },
+			"Ke" => { current_mat.Ke = util::parse_vec3_only(&state, &mut args)?; },
 			"Ni" => { /* TODO: Figure out what this command is */ },
-			"d"  => { current_mat.d = parse1(&state, &mut args)?; },
+			"d"  => { current_mat.d = util::parse1_only(&state, &mut args)?; },
 			"illum" => { /* TODO: Implement this command */ },
 			"map_Ka" => {
-				let id: String = parse1(&state, &mut args)?;
-				let id = parse_texture_path(&state, &rel_path, &id);
-				current_mat.map_Ka = Some(id);
+				let t = parse_texture(&state, &mut args)?;
+				current_mat.map_Ka = Some(t);
 			},
 			"map_Kd" => {
-				let id: String = parse1(&state, &mut args)?;
-				let id = parse_texture_path(&state, &rel_path, &id);
-				current_mat.map_Kd = Some(id);
+				let t = parse_texture(&state, &mut args)?;
+				current_mat.map_Kd = Some(t);
 			},
 			_ => {
 				return Err(format!("Unrecognized command `{}` at {}:{}", state.command, state.path.display(), state.lno))
@@ -354,52 +355,9 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 	Ok(())
 }
 
-fn parse_vec3<'a, I>(st: &ParseState, it: &mut I) -> GameResult<Vec3>
+fn parse_texture<'a, I>(state: &ParseState, args: &mut I) -> GameResult<(TextureID, TextureOptions)>
 		where I: Iterator<Item=&'a str> {
-	let v = parseN(st, 3, it)?;
-	let v = vec3(v[0], v[1], v[2]);
-	Ok(v)
-}
-
-fn parse1<'a, F: FromStr, I>(st: &ParseState, it: &mut I) -> GameResult<F>
-		where I: Iterator<Item=&'a str> {
-	let a = it.next().ok_or_else(|| st.to_error())?;
-	if it.next().is_some() { return Err(st.to_error()); }
-	a.parse().map_err(|_| st.to_error())
-}
-
-fn parseN_it<'a, F: FromStr, I>(st: &ParseState, it: &mut I) -> GameResult<F>
-		where I: Iterator<Item=&'a str> {
-	let a = it.next().ok_or_else(|| st.to_error())?;
-	a.parse().map_err(|_| st.to_error())
-}
-
-fn parseN<'a, F: FromStr, I>(st: &ParseState, n: usize, it: &mut I) -> GameResult<Vec<F>>
-		where I: Iterator<Item=&'a str> {
-	let mut ret = Vec::with_capacity(n);
-	for _ in 0..n {
-		ret.push(parseN_it(st, it)?);
-	}
-	Ok(ret)
-}
-
-// Removes all unnecesary parents in a path
-fn remove_parents(p: &Path) -> PathBuf {
-	let mut ret = PathBuf::new();
-	let mut n = 0;
-	for c in p.components() {
-		let c_str = c.as_os_str();
-		if c_str == ".." && n == 0 {
-			ret.push(c_str);
-		} else if c_str == ".." {
-			ret.pop();
-			n -= 1;
-		} else {
-			ret.push(c_str);
-			n += 1;
-		}
-	}
-	ret
+	unimplemented!()
 }
 
 fn parse_texture_path(state: &ParseState, base_path: &Path, id: &str) -> TextureID {
@@ -412,7 +370,7 @@ fn parse_texture_path(state: &ParseState, base_path: &Path, id: &str) -> Texture
 		let mut ret = base_path.to_path_buf();
 		ret.push("..");
 		ret.push(&id);
-		let ret = remove_parents(&ret);
+		let ret = util::remove_parents(&ret);
 		trace!("ret: {}", ret.display());
 		ret.to_string_lossy().into_owned()
 	}
@@ -439,24 +397,4 @@ pub fn load_shader_program(ctx: &Rc<Context>, rel_base: &str) -> GameResult<Prog
 		.map_err(|e| format!("Could not parse shader {}\n{}", base.display(), e))?;
 	
 	Ok(prog)
-}
-
-#[cfg(test)]
-mod test {
-	#[test]
-	fn test_remove_parents() {
-		use std::path::Path;
-		macro_rules! trp {
-			($input:expr, $expect:expr) => ({
-				let input = Path::new($input);
-				let expected = Path::new($expect);
-				let ret = super::remove_parents(&input);
-				assert_eq!(ret, expected);
-			})
-		}
-		
-		trp!("thing/other/../no_wait/", "thing/no_wait/");
-		trp!("../thing/../other/", "../other/");
-		trp!("../../../thing/thing2/../o", "../../../thing/o");
-	}
 }
