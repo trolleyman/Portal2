@@ -3,9 +3,11 @@ use prelude::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 use glium::backend::Context;
 use glium::VertexBuffer;
+use glium::index::{PrimitiveType, IndicesSource, IndexBuffer, IndexBufferAny};
 
 use game::duration_to_millis;
 use super::Material;
@@ -34,6 +36,7 @@ impl MeshBank {
 		let def = Mesh {
 			material: Material::default(),
 			vertices: buffer,
+			indices: None,
 		};
 		
 		let mut mb = MeshBank {
@@ -123,6 +126,18 @@ pub struct Vertex {
 	uv: [Flt; 2],
 	normal: [Flt; 3],
 }
+impl Vertex {
+	pub fn as_bytes(&self) -> &[u8] {
+		unsafe {
+			use std::mem;
+			use std::slice;
+			
+			let ptr = mem::transmute::<&Vertex, *const u8>(self);
+			let s = slice::from_raw_parts(ptr, mem::size_of::<Vertex>());
+			s
+		}
+	}
+}
 implement_vertex!(Vertex, pos, normal, uv);
 impl fmt::Debug for Vertex {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -140,21 +155,54 @@ impl fmt::Debug for Vertex {
 		Ok(())
 	}
 }
+impl Hash for Vertex {
+	fn hash<H>(&self, state: &mut H)
+			where H: Hasher {
+		// Write out everything as an array of bytes
+		state.write(self.as_bytes());
+	}
+	fn hash_slice<H>(data: &[Self], state: &mut H)
+			where H: Hasher {
+		for d in data.iter() {
+			d.hash(state);
+		}
+	}
+}
+impl PartialEq<Vertex> for Vertex {
+	fn eq(&self, rhs: &Vertex) -> bool {
+		self.as_bytes() == rhs.as_bytes()
+	}
+}
+impl Eq for Vertex {}
 
-#[derive(Debug)]
 pub struct Mesh {
 	pub material: Material,
 	pub vertices: VertexBuffer<Vertex>,
-	// TODO: Don't use NoIndices, as it is extremely wasteful.
+	/// If None, use NoIndices.
+	pub indices: Option<Box<IndexBufferAny>>,
 }
 impl Mesh {
+	pub fn indices_source<'a>(&'a self) -> IndicesSource<'a> {
+		match &self.indices {
+			&Some(ref buf) => IndicesSource::from(&**buf),
+			&None => IndicesSource::NoIndices{ primitives: PrimitiveType::TrianglesList },
+		}
+	}
+	
 	pub fn from_file(ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {
 		use render::parse::ObjFile;
 		
 		let file = ObjFile::new(rel_path.to_string())
 			.map_err(|e| format!("Invalid mesh: {}", e))?;
 		
-		let mut vertices = Vec::with_capacity(file.faces.len() * 3);
+		// Get material
+		let material = file.material.clone()
+		.and_then(|mat_name| file.materials.get(&mat_name).map(Material::clone))
+		.unwrap_or_else(Material::default);
+		
+		let mut vertices = vec![];
+		let mut vertices_map: HashMap<Vertex, u32> = HashMap::new();
+		let mut indices: Vec<u32> = vec![];
 		
 		// Change from indices to vertices
 		for face in file.faces.iter() {
@@ -164,26 +212,54 @@ impl Mesh {
 					uv: array2(file.uvs[vertex.uv as usize]),
 					normal: array3(file.normals[vertex.norm as usize]),
 				};
-				vertices.push(v);
+				if let Some(i) = vertices_map.get(&v).cloned() {
+					indices.push(i); // Use cached vertex
+				} else {
+					// Insert new vertex, and update the map
+					let i = vertices.len() as u32;
+					vertices.push(v);
+					indices.push(i);
+					vertices_map.insert(v, i);
+				}
 			}
 		}
-		
-		debug!("{} vertices loaded.", vertices.len());
+		debug!("{} vertices, {} indices loaded.", vertices.len(), indices.len());
 		//trace!("Vertices loaded: {:#?}", &vertices);
 		
 		// Upload vertex information to OpenGL
-		let buffer = VertexBuffer::new(ctx, &vertices)
+		let v_buffer = VertexBuffer::new(ctx, &vertices)
 			.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
 		
-		let material = file.material.clone()
-			.and_then(|mat_name| file.materials.get(&mat_name).map(Material::clone))
-			.unwrap_or_else(Material::default);
+		// Upload index information to OpenGL
+		// Minimize the size of the index array by choosing shorter ints
+		let i_buffer = if vertices.len() < u8::max_value() as usize {
+			// Use u8 indices
+			debug!("u8 indices used.");
+			let indices: Vec<_> = indices.iter().map(|&i| i as u8 ).collect();
+			let buf = IndexBuffer::new(ctx, PrimitiveType::TrianglesList, &indices)
+				.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
+			IndexBufferAny::from(buf)
+		} else if vertices.len() < u16::max_value() as usize {
+			// Use u16 indices
+			debug!("u16 indices used.");
+			let indices: Vec<_> = indices.iter().map(|&i| i as u16).collect();
+			let buf = IndexBuffer::new(ctx, PrimitiveType::TrianglesList, &indices)
+				.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
+			IndexBufferAny::from(buf)
+		} else {
+			// Use u32 indices
+			debug!("u32 indices used.");
+			let buf = IndexBuffer::new(ctx, PrimitiveType::TrianglesList, &indices)
+				.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
+			IndexBufferAny::from(buf)
+		};
 		
 		trace!("Material loaded: {:?}", &material);
 		
 		Ok(Mesh {
 			material: material,
-			vertices: buffer,
+			vertices: v_buffer,
+			indices: Some(box i_buffer),
 		})
 	}
 }

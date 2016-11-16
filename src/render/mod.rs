@@ -5,7 +5,6 @@ use std::rc::Rc;
 
 use glium::{Depth, DepthTest, Frame, Program, Surface};
 use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
-use glium::index::{PrimitiveType, NoIndices};
 use glium::backend::Context;
 use glium::uniforms::MinifySamplerFilter;
 use glium::uniforms::MagnifySamplerFilter;
@@ -94,7 +93,7 @@ impl Render {
 		let map_Kd = get_tex(&mut self.tex_bank, mesh.material.map_Kd.clone());
 		let ret = f.draw(
 			&mesh.vertices,
-			NoIndices(PrimitiveType::TrianglesList),
+			mesh.indices_source(),
 			&self.phong_program,
 			&uniform! {
 				u_light_ambient: array4(self.light.ambient),
