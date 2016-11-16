@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::iter::Peekable;
 
 use render::{TextureID, TextureOptions, Material};
 
@@ -204,7 +205,7 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 	
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
 		if line == "" { continue; }
-		let mut args = line.split_whitespace();
+		let mut args = line.split_whitespace().peekable();
 		let command = args.next().unwrap_or("");
 		state.command = command.to_string();
 		state.lno = lno;
@@ -312,7 +313,7 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 	
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
 		if line == "" { continue; }
-		let mut args = line.split_whitespace();
+		let mut args = line.split_whitespace().peekable();
 		let command = args.next().unwrap_or("");
 		state.command = command.to_string();
 		state.lno = lno;
@@ -336,14 +337,8 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 			"Ni" => { /* TODO: Figure out what this command is */ },
 			"d"  => { current_mat.d = util::parse1_only(&state, &mut args)?; },
 			"illum" => { /* TODO: Implement this command */ },
-			"map_Ka" => {
-				let t = parse_texture(&state, &mut args)?;
-				current_mat.map_Ka = Some(t);
-			},
-			"map_Kd" => {
-				let t = parse_texture(&state, &mut args)?;
-				current_mat.map_Kd = Some(t);
-			},
+			"map_Ka" => { current_mat.map_Ka = Some(parse_texture_args(&state, &mut args)?); },
+			"map_Kd" => { current_mat.map_Kd = Some(parse_texture_args(&state, &mut args)?); },
 			_ => {
 				return Err(format!("Unrecognized command `{}` at {}:{}", state.command, state.path.display(), state.lno))
 			}
@@ -355,19 +350,41 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 	Ok(())
 }
 
-fn parse_texture<'a, I>(state: &ParseState, args: &mut I) -> GameResult<(TextureID, TextureOptions)>
+fn parse_texture_args<'a, I>(state: &ParseState, args: &mut Peekable<I>) -> GameResult<(TextureID, TextureOptions)>
 		where I: Iterator<Item=&'a str> {
-	unimplemented!()
+	let a: String = util::parse1(state, args)?;
+	if !a.starts_with('-') { // `a` is a texture ID.
+		// Ensure that there are no more args
+		if args.peek().is_some() { return Err(state.to_error()); }
+		
+		// Parse `a` as a texture ID
+		let id = parse_texture_path(state, &a);
+		Ok((id, TextureOptions::default()))
+	} else { // `a` is a texture option
+		match a.as_str() {
+			"-s" => { // "-s u [v] [w]" -- uv scale option
+				let u = util::parse1(state, args)?;
+				let v = util::parse1_opt(args).unwrap_or(1.0);
+				let _ = util::parse1_opt(args).unwrap_or(1.0): Flt; // Ignore the 3D option
+				let (id, mut opt) = parse_texture_args(state, args)?; // Recurse on other arguments
+				opt.uv_scale = vec2(u, v);
+				Ok((id, opt))
+			},
+			_ => {
+				Err(state.to_error() + &format!(": Unknown texture option `{}`", a))
+			}
+		}
+	}
 }
 
-fn parse_texture_path(state: &ParseState, base_path: &Path, id: &str) -> TextureID {
+fn parse_texture_path(state: &ParseState, id: &str) -> TextureID {
 	trace!("id: {}", id);
 	let id = Path::new(&id);
 	if id.is_absolute() {
 		warn!("Absolute path detected in mtl file at {}:{}: {}", state.path.display(), state.lno, id.display());
 		id.to_string_lossy().into_owned()
 	} else {
-		let mut ret = base_path.to_path_buf();
+		let mut ret = state.rel_path.clone();
 		ret.push("..");
 		ret.push(&id);
 		let ret = util::remove_parents(&ret);

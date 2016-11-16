@@ -22,7 +22,7 @@ void main() {
 	
 	// Calculate uvs
 	t_uv_Ka = uv * u_map_Ka_uv_scale;
-	t_uv_Ka = uv * u_map_Ka_uv_scale;
+	t_uv_Kd = uv * u_map_Kd_uv_scale;
 	
 	// Transform normals into world space
 	t_normal = vec3(u_model_mat * vec4(normal, 0.0));

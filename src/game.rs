@@ -161,7 +161,7 @@ impl Game {
 		const SPEED_MULT: Flt = 2.0;
 		
 		for e in es {
-			info!("Event recieved: {:?}", e);
+			debug!("Event recieved: {:?}", e);
 			match e {
 				Quit => {
 					self.state.quit = true;
