@@ -117,7 +117,7 @@ impl Game {
 			// Center the cursor if focused
 			if self.state.focused {
 				if let Some(win) = self.win.get_window() {
-					if let Some((w, h)) = win.get_outer_size() {
+					if let Some((w, h)) = win.get_inner_size() {
 						let mid = (w as i32 / 2, h as i32 / 2);
 						if win.set_cursor_position(mid.0, mid.1).is_ok() {
 							trace!("Mid: {}, {}", mid.0, mid.1);
@@ -176,7 +176,7 @@ impl Game {
 					self.state.focused = true;
 					self.state.ignore_mouse_frames = 1;
 					if let Some(win) = self.win.get_window() {
-						win.set_cursor_state(CursorState::Grab)
+						win.set_cursor_state(CursorState::Hide)
 							.map_err(|e| warn!("set_cursor_state failed: {}", e)).ok();
 					}
 				},
