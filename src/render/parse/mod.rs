@@ -91,13 +91,21 @@ impl ObjFile {
 		
 		parse_file(&mut f)?;
 		
+		// Convert co-ordinate system from Blender co-ordinates (Z up, -Y forward) to our co-ordinates (Y up, -Z forward)
+		f.convert_co_ordinates();
+		
 		// Validate pre_faces, so that we know all indices are in bounds
 		f.validate()?;
-				
+		
 		// Calculate faces from pre_faces
 		f.calculate_faces();
 		
 		Ok(f)
+	}
+	
+	/// Convert co-ordinate system from Blender co-ordinates (Z up, -Y forward) to our co-ordinates (Y up, -Z forward)
+	fn convert_co_ordinates(&mut self) {
+		// Currently don't do anything, see what happens
 	}
 	
 	/// Calculates the faces from pre_faces.

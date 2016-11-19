@@ -18,6 +18,7 @@ pub type MeshID = String;
 
 pub const MESH_DIR: &'static str = "res/mesh/";
 pub const MESHID_TEST: &'static str = "res/mesh/test.obj";
+pub const MESHID_AXES_TEST: &'static str = "res/mesh/axes_test.obj";
 pub const MESHID_MONKEY: &'static str = "res/mesh/monkey.obj";
 pub const MESHID_TEAPOT: &'static str = "res/mesh/teapot.obj";
 pub const MESHID_FLOOR: &'static str = "res/mesh/floor.obj";

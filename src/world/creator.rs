@@ -12,6 +12,9 @@ pub fn example_world() -> World {
 	
 	let mut es: Vec<Box<Entity>> = vec![];
 	es.push(box entity::SimpleEntity::new(
+		vec3(0.0, 0.0, 0.0),
+		render::MESHID_AXES_TEST.into()));
+	es.push(box entity::SimpleEntity::new(
 		Transform::new(vec3(0.0, 0.5, -7.0), Vec3::from_value(0.5)),
 		render::MESHID_TEST.into()));
 	es.push(box entity::RandomRotatingEntity::new(
