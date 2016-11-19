@@ -49,6 +49,11 @@ impl MeshBank {
 		Ok(mb)
 	}
 	
+	/// Clears the mesh cache
+	pub fn clear_cache(&mut self) {
+		self.cache.clear();
+	}
+	
 	/// The default mesh
 	pub fn default_mesh(&self) -> Rc<Mesh> {
 		self.default_mesh.clone()
@@ -91,7 +96,7 @@ impl MeshBank {
 	}
 	
 	/// Loads all of the meshes in the MESH_DIR directory
-	fn load_meshes(&mut self) {
+	pub fn load_meshes(&mut self) {
 		use std::fs;
 		use vfs;
 		
