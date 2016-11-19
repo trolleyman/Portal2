@@ -54,6 +54,11 @@ impl TextureBank {
 		Ok(tb)
 	}
 	
+	/// Clears the texture cache
+	pub fn clear_cache(&mut self) {
+		self.cache.clear();
+	}
+	
 	/// Returns the default texture (one opaque white pixel)
 	pub fn default_texture(&self) -> Rc<Texture2d> {
 		self.default_texture.clone()
@@ -103,7 +108,7 @@ impl TextureBank {
 	}
 	
 	/// Loads all of the textures in the TEX_DIR directory
-	fn load_textures(&mut self) {
+	pub fn load_textures(&mut self) {
 		use std::fs;
 		use vfs;
 		

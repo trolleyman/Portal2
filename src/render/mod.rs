@@ -37,6 +37,8 @@ fn normalize_id(id: String) -> String {
 	}
 }
 
+const SHADER_PHONG: &'static str = "res/shader/phong";
+
 pub struct Render {
 	#[allow(dead_code)]
 	ctx: Rc<Context>,
@@ -54,11 +56,28 @@ impl Render {
 			ctx: ctx.clone(),
 			mesh_bank: MeshBank::new(ctx.clone())?,
 			tex_bank: TextureBank::new(ctx.clone())?,
-			phong_program: parse::load_shader_program(&ctx, "res/shader/phong")?,
+			phong_program: parse::load_shader_program(&ctx, SHADER_PHONG)?,
 			camera: c,
 			light: l,
 			mat_view: mat_view,
 		})
+	}
+	
+	pub fn reload_meshes(&mut self) {
+		self.mesh_bank.clear_cache();
+		self.mesh_bank.load_meshes();
+	}
+	
+	pub fn reload_textures(&mut self) {
+		self.tex_bank.clear_cache();
+		self.tex_bank.load_textures();
+	}
+	
+	pub fn reload_shaders(&mut self) {
+		match parse::load_shader_program(&self.ctx, SHADER_PHONG) {
+			Ok(p) => self.phong_program = p,
+			Err(e) => warn!("Could not reload shader '{}': {}", SHADER_PHONG, e),
+		}
 	}
 	
 	pub fn set_light(&mut self, l: Light) {

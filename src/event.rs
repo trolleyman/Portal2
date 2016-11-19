@@ -25,6 +25,12 @@ pub enum InternalEvent {
 	Focus,
 	/// Unfocus from the application (disable mouse locking)
 	Unfocus,
+	/// Reloads the meshes
+	ReloadMeshes,
+	/// Reloads the textures
+	ReloadTextures,
+	/// Reloads the shaders
+	ReloadShaders,
 }
 impl InternalEvent {
 	pub fn from_events<I>(state: &mut GameState, it: &mut I) -> Vec<InternalEvent> where I: Iterator<Item=Event> {
@@ -85,6 +91,14 @@ fn process_keyboard_state(state: &KeyboardState, es: &mut Vec<InternalEvent>) {
 fn key_pressed(es: &mut Vec<InternalEvent>, key: Key) {
 	match key {
 		Key::Escape => { es.push(InternalEvent::Unfocus); }
+		Key::F5 => {
+			 es.push(InternalEvent::ReloadMeshes);
+			 es.push(InternalEvent::ReloadTextures);
+			 es.push(InternalEvent::ReloadShaders);
+		},
+		Key::F6 => { es.push(InternalEvent::ReloadMeshes); },
+		Key::F7 => { es.push(InternalEvent::ReloadTextures); },
+		Key::F8 => { es.push(InternalEvent::ReloadShaders); },
 		_ => {}
 	}
 }

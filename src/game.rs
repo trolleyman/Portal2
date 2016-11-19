@@ -187,7 +187,25 @@ impl Game {
 						win.set_cursor_state(CursorState::Normal)
 							.map_err(|e| warn!("set_cursor_state failed: {}", e)).ok();
 					}
+				},
+				ReloadMeshes => {
+					info!(" === Reloading Meshes === ");
+					let t = Instant::now();
+					self.ren.reload_meshes();
+					info!(" === Reloaded Meshes ({}ms) === ", duration_to_millis(t.elapsed()));
+				},
+				ReloadTextures => {
+					info!(" === Reloading Textures === ");
+					let t = Instant::now();
+					self.ren.reload_textures();
+					info!(" === Reloaded Textures ({}ms) === ", duration_to_millis(t.elapsed()));
 				}
+				ReloadShaders => {
+					info!(" === Reloading Shaders === ");
+					let t = Instant::now();
+					self.ren.reload_shaders();
+					info!(" === Reloaded Shaders ({}ms) === ", duration_to_millis(t.elapsed()));
+				},
 			}
 		}
 	}
