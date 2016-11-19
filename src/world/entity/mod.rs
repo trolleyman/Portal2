@@ -23,7 +23,13 @@ impl Default for Transform {
 	}
 }
 impl Transform {
-	pub fn new(pos: Vec3, rot: Quat, scale: Vec3) -> Transform {
+	pub fn from_pos(pos: Vec3) -> Transform {
+		Transform::new(pos, Vec3::from_value(1.0))
+	}
+	pub fn new(pos: Vec3, scale: Vec3) -> Transform {
+		Transform::new_rot(pos, one(), scale)
+	}
+	pub fn new_rot(pos: Vec3, rot: Quat, scale: Vec3) -> Transform {
 		let mut t = Transform {
 			pos: pos,
 			rot: rot,
@@ -33,14 +39,14 @@ impl Transform {
 		t.recalc_mat();
 		t
 	}
-	pub fn from_pos(pos: Vec3) -> Transform {
-		Transform::new(pos, one(), vec3(1.,1.,1.))
-	}
 	
 	fn recalc_mat(&mut self) {
 		self.mat = Mat4::from_translation(self.pos)
 		         * Mat4::from(self.rot)
 		         * Mat4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z);
+	}
+	pub fn mat(&self) -> Mat4 {
+		self.mat
 	}
 	
 	pub fn pos(&self) -> Vec3 {
@@ -51,9 +57,6 @@ impl Transform {
 	}
 	pub fn scale(&self) -> Vec3 {
 		self.scale
-	}
-	pub fn mat(&self) -> Mat4 {
-		self.mat
 	}
 	pub fn set_pos(&mut self, pos: Vec3) {
 		self.pos = pos;

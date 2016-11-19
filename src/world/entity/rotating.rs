@@ -39,7 +39,6 @@ impl Entity for RandomRotatingEntity {
 }
 
 pub struct RotatingEntity {
-	time: Flt,
 	axis: Vec3,
 	angle: Rad<Flt>,
 	trans: Transform,
@@ -48,7 +47,6 @@ pub struct RotatingEntity {
 impl RotatingEntity {
 	pub fn new<T: Into<Transform>>(trans: T, axis: Vec3, angle: Rad<Flt>, mesh_id: MeshID) -> RotatingEntity {
 		RotatingEntity {
-			time: 0.0,
 			axis: axis,
 			angle: angle,
 			trans: trans.into(),
@@ -61,10 +59,10 @@ impl Entity for RotatingEntity {
 		r.draw_mesh(f, self.mesh_id.clone(), self.trans.mat());
 	}
 	fn tick(&mut self, dt: Flt) {
-		self.time += dt;
+		let rot = self.trans.rot();
+		let angle = self.angle * dt;
+		let rot_trans = Quat::from_axis_angle(self.axis, angle);
 		
-		let angle = self.angle * self.time;
-		let rot = Quat::from_axis_angle(self.axis, angle);
-		self.trans.set_rot(rot);
+		self.trans.set_rot(rot * rot_trans);
 	}
 }

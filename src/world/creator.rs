@@ -7,14 +7,25 @@ pub fn example_world() -> World {
 	let mut cam = Camera::default();
 	cam.pos = vec3(0.0, 0.6, 0.0);
 	let mut light = Light::default();
+	light.ambient = vec4(0.01, 0.01, 0.01, 1.0);
 	light.pos = vec3(3.0, 10.0, 0.0);
 	
 	let mut es: Vec<Box<Entity>> = vec![];
-	es.push(box entity::SimpleEntity::new(vec3(0.0, 0.0, -5.0), render::MESHID_TEST.into()));
-	es.push(box entity::RandomRotatingEntity::new(vec3(3.0, 0.0, -5.0), render::MESHID_MONKEY.into()));
-	es.push(box entity::RotatingEntity::new(vec3(-5.0, -1.0, -5.0), vec3(0.0, 1.0, 0.0), Rad(1.0), render::MESHID_TEAPOT.into()));
-	es.push(box entity::SimpleEntity::new(vec3(0.0, 0.0, 0.0), render::MESHID_FLOOR.into()));
-	es.push(box entity::RotatingEntity::new(vec3(0.0, 3.0, -5.0), vec3(0.0, 1.0, 0.0), Rad(0.5), render::MESHID_EARTH.into()));
+	es.push(box entity::SimpleEntity::new(
+		Transform::new(vec3(0.0, 0.5, -7.0), Vec3::from_value(0.5)),
+		render::MESHID_TEST.into()));
+	es.push(box entity::RandomRotatingEntity::new(
+		Transform::new(vec3(2.0, 0.7, -7.0), Vec3::from_value(0.5)),
+		render::MESHID_MONKEY.into()));
+	es.push(box entity::RotatingEntity::new(
+		Transform::new(vec3(-3.0, -0.1, -7.0), Vec3::from_value(0.5)),
+		vec3(0.0, 1.0, 0.0), Rad(1.0), render::MESHID_TEAPOT.into()));
+	es.push(box entity::SimpleEntity::new(
+		vec3(0.0, 0.0, 0.0),
+		render::MESHID_FLOOR.into()));
+	es.push(box entity::RotatingEntity::new(
+		Transform::new_rot(vec3(4.0, 8.0, -8.0), Quat::from_axis_angle(Vec3::unit_x(), Rad::turn_div_2()), Vec3::from_value(4.0)),
+		vec3(0.0, 1.0, 0.0), Rad(0.2), render::MESHID_EARTH.into()));
 	
 	World {
 		camera: cam,

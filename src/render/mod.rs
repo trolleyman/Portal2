@@ -89,7 +89,7 @@ impl Render {
 		let mat_mvp = mat_projection * self.mat_view * mat_model;
 		// TODO: Get a default mesh if failed to load mesh_id
 		let mesh = self.mesh_bank.get_mesh_or_default(mesh_id.clone());
-		let map_Ka = get_tex(&mut self.tex_bank, mesh.material.map_Ka.clone());
+		let map_Ka = get_tex(&mut self.tex_bank, mesh.material.get_map_Ka());
 		let map_Kd = get_tex(&mut self.tex_bank, mesh.material.map_Kd.clone());
 		let ret = f.draw(
 			&mesh.vertices,
@@ -196,6 +196,21 @@ pub struct Material {
 	pub bump: Option<(TextureID, TextureOptions)>,
 	/// Displacement map (TODO)
 	pub disp: Option<(TextureID, TextureOptions)>,
+}
+impl Material {
+	/// Getting the ambient texture map requires hacky logic.
+	/// 
+	/// For objects with a diffuse texture map, we want it to be that.
+	/// For all other objects, we want it to be the default texture.
+	fn get_map_Ka(&self) -> Option<(TextureID, TextureOptions)> {
+		if self.map_Ka.is_some() {
+			self.map_Ka.clone()
+		} else if self.map_Kd.is_some() {
+			self.map_Kd.clone()
+		} else {
+			None
+		}
+	}
 }
 impl Default for Material {
 	fn default() -> Material {

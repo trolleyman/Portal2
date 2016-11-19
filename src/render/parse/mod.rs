@@ -100,24 +100,37 @@ impl ObjFile {
 		Ok(f)
 	}
 	
-	/// Calculates the faces from pre_faces
+	/// Calculates the faces from pre_faces.
+	/// 
+	/// To calculate missing uvs, we are using a flat generating algorithm.
 	fn calculate_faces(&mut self) {
 		trace!("Calculating faces...");
+		if self.pre_faces.is_empty() {
+			return; // Return if there are no faces to calculate
+		}
 		// Reserve space for faces
 		let add = self.pre_faces.len() as isize - self.faces.len() as isize;
 		self.faces.reserve( if add < 0 { 0 } else { add as usize } );
 		
-		// Add default uv (0.0, 0.0)
-		self.uvs.push(vec2(0.0, 0.0));
-		let def_uv_idx = (self.uvs.len() - 1) as Idx;
+		// Get extents of mesh
+		let mut min = self.vertices[self.pre_faces[0].x.vert as usize];
+		let mut max = self.vertices[self.pre_faces[0].x.vert as usize];
+		for f in self.pre_faces.iter() {
+			for vi in [f.x, f.y, f.z].iter() {
+				let v = self.vertices[vi.vert as usize];
+				min = vec3(min.x.min(v.x), min.y.min(v.y), min.z.min(v.z));
+				max = vec3(max.x.max(v.x), max.y.max(v.y), max.z.max(v.z));
+			}
+		}
 		
 		// Process faces
 		for f in self.pre_faces.iter() {
+			let v0 = self.vertices[f.x.vert as usize];
+			let v1 = self.vertices[f.y.vert as usize];
+			let v2 = self.vertices[f.z.vert as usize];
+			
 			// Calculate normals
 			let normals = if f.x.norm.is_none() || f.y.norm.is_none() || f.z.norm.is_none() {
-				let v0 = self.vertices[f.x.vert as usize];
-				let v1 = self.vertices[f.y.vert as usize];
-				let v2 = self.vertices[f.z.vert as usize];
 				let n = (v1 - v0).cross(v2 - v0).normalize();
 				self.normals.push(n);
 				let i = (self.normals.len() - 1) as Idx;
@@ -125,10 +138,25 @@ impl ObjFile {
 			} else {
 				vec3(f.x.norm.unwrap()    , f.y.norm.unwrap()    , f.z.norm.unwrap()    )
 			};
+			// Calculate uvs
+			let calc_prop = |f, min, max| { (f - min) / (min - max) };
+			let calc_uv = |v: Vec3| { vec2(calc_prop(v.x, min.x, max.x), calc_prop(v.z, min.z, max.z)) };
+			let calc_uv_idx = |uvs: &mut Vec<_>, v| { uvs.push(calc_uv(v)); uvs.len() as Idx - 1 };
+			
+			let uvs = &mut self.uvs;
+			let uvs = if f.x.uv.is_none() || f.y.uv.is_none() || f.z.uv.is_none() {
+				let uv0 = f.x.uv.unwrap_or_else(|| calc_uv_idx(uvs, v0));
+				let uv1 = f.y.uv.unwrap_or_else(|| calc_uv_idx(uvs, v1));
+				let uv2 = f.z.uv.unwrap_or_else(|| calc_uv_idx(uvs, v2));
+				vec3(uv0, uv1, uv2)
+			} else {
+				vec3(f.x.uv.unwrap(), f.y.uv.unwrap(), f.z.uv.unwrap())
+			};
+			
 			let face = vec3(
-				IndexInfo::new(f.x.vert, f.x.uv.unwrap_or(def_uv_idx), normals.x),
-				IndexInfo::new(f.y.vert, f.y.uv.unwrap_or(def_uv_idx), normals.y),
-				IndexInfo::new(f.z.vert, f.z.uv.unwrap_or(def_uv_idx), normals.z));
+				IndexInfo::new(f.x.vert, uvs.x, normals.x),
+				IndexInfo::new(f.y.vert, uvs.y, normals.y),
+				IndexInfo::new(f.z.vert, uvs.z, normals.z));
 			self.faces.push(face);
 		}
 	}
