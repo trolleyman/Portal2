@@ -6,6 +6,7 @@ use render::Render;
 
 pub use self::simple::SimpleEntity;
 pub use self::rotating::{RotatingEntity, RandomRotatingEntity};
+pub use self::portal::Portal;
 
 mod simple;
 mod rotating;

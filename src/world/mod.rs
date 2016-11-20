@@ -18,7 +18,7 @@ pub struct World {
 	/// Entities in the world. All are static atm.
 	entities: Vec<Box<Entity>>,
 	/// Location of the two portals in the world
-	portals: [Portal; 2],
+	portals: Option<[entity::Portal; 2]>,
 }
 impl World {
 	pub fn new() -> GameResult<World> {
@@ -53,6 +53,10 @@ impl World {
 		r.set_light(self.light);
 		for e in self.entities.iter() {
 			e.render(r, f);
+		}
+		if let Some(ps) = self.portals {
+			ps[0].render(r, f);
+			ps[1].render(r, f);
 		}
 	}
 }

@@ -289,7 +289,6 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 					let str_norm = iit.next();
 					// Ensure that "1/2/3/" fails
 					if iit.next().is_some() { return Err(state.to_error()); }
-					
 					let idx_vert = str_vert.parse().map_err(|_| state.to_error())?;
 					let idx_vert = process_index(idx_vert, f.vertices.len());
 					let idx_uv = match str_uv {

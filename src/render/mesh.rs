@@ -22,6 +22,7 @@ pub const MESHID_MONKEY: &'static str = "res/mesh/monkey.obj";
 pub const MESHID_TEAPOT: &'static str = "res/mesh/teapot.obj";
 pub const MESHID_FLOOR: &'static str = "res/mesh/floor.obj";
 pub const MESHID_EARTH: &'static str = "res/mesh/earth.obj";
+pub const MESHID_PORTAL: &'static str = "res/mesh/portal.obj";
 
 pub struct MeshBank {
 	ctx: Rc<Context>,
