@@ -17,7 +17,6 @@ use super::normalize_id;
 pub type MeshID = String;
 
 pub const MESH_DIR: &'static str = "res/mesh/";
-pub const MESHID_TEST: &'static str = "res/mesh/test.obj";
 pub const MESHID_AXES_TEST: &'static str = "res/mesh/axes_test.obj";
 pub const MESHID_MONKEY: &'static str = "res/mesh/monkey.obj";
 pub const MESHID_TEAPOT: &'static str = "res/mesh/teapot.obj";
@@ -229,8 +228,9 @@ impl Mesh {
 				}
 			}
 		}
-		debug!("{} vertices, {} indices loaded ({} diff).", vertices.len(), indices.len(), indices.len() as isize - vertices.len() as isize);
-		//trace!("Vertices loaded: {:#?}", &vertices);
+		debug!("{} vertices, {} tris loaded.", vertices.len(), indices.len() / 3);
+		trace!("Vertices loaded: {:#?}", &vertices);
+		trace!("Indices loaded: {:?}", &indices);
 		
 		// Upload vertex information to OpenGL
 		let v_buffer = VertexBuffer::new(ctx, &vertices)
