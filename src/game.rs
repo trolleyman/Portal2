@@ -65,7 +65,7 @@ impl Game {
 			.with_title("Portal")
 			.with_dimensions(WIN_INIT_W, WIN_INIT_H)
 			.with_vsync()
-			.with_visibility(false)
+			.with_visibility(true)
 			.build_glium()
 			.map_err(|e| format!("Window creation error: {}", e))?;
 		
@@ -205,6 +205,9 @@ impl Game {
 					let t = Instant::now();
 					self.ren.reload_shaders();
 					info!(" === Reloaded Shaders ({}ms) === ", duration_to_millis(t.elapsed()));
+				},
+				RotatePortal(r) => {
+					self.world.rotate_portal(r);
 				},
 			}
 		}

@@ -42,15 +42,18 @@ impl World {
 		self.camera.rotate_player(r);
 	}
 	
+	pub fn rotate_portal(&mut self, r: Vector2<Rad<Flt>>) {
+		self.portals.map(|mut ps| { ps[1].angx += r.x; } );
+		self.portals.map(|mut ps| { ps[1].angy += r.y; } );
+	}
+	
 	pub fn tick(&mut self, dt: Flt) {
 		for e in self.entities.iter_mut() {
 			e.tick(dt);
 		}
 	}
 	
-	pub fn render(&self, r: &mut Render, f: &mut Frame) {
-		r.set_camera(self.camera.clone());
-		r.set_light(self.light);
+	fn render_iter(&self, r: &mut Render, f: &mut Frame) {
 		for e in self.entities.iter() {
 			e.render(r, f);
 		}
@@ -58,5 +61,18 @@ impl World {
 			ps[0].render(r, f);
 			ps[1].render(r, f);
 		}
+	}
+	
+	pub fn render(&self, r: &mut Render, f: &mut Frame) {
+		r.set_camera(self.camera.clone());
+		r.set_light(self.light);
+		if let Some(ps) = self.portals {
+			r.set_portals(f, ps[0], ps[1]);
+			self.render_iter(r, f);
+			r.set_portals(f, ps[1], ps[0]);
+			self.render_iter(r, f);
+		}
+		r.unset_portals(f);
+		self.render_iter(r, f);
 	}
 }

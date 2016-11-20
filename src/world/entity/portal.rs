@@ -14,25 +14,36 @@ use glium::Frame;
 #[derive(Debug, Copy, Clone)]
 pub struct Portal {
 	pub pos: Vec3,
-	pub normal: Vec3,
+	pub angx: Rad<Flt>,
+	pub angy: Rad<Flt>,
 	pub size: Vec2,
 }
 impl Portal {
-	pub fn new(pos: Vec3, normal: Vec3, size: Vec2) -> Portal {
+	pub fn new(pos: Vec3, angx: Rad<Flt>, angy: Rad<Flt>, size: Vec2) -> Portal {
 		Portal {
 			pos: pos,
-			normal: normal,
+			angx: angx,
+			angy: angy,
 			size: size,
 		}
+	}
+	
+	/// Returns the model matrix for the portal
+	pub fn model_matrix(&self) -> Mat4 {
+		// This is confusing because it uses from_angle_y.
+		// This is because the x rotation is /around/ the y axis. 
+		let rot_x = Quaternion::from_angle_y(self.angx);
+		// The same principle applies here.
+		let rot_y = Quaternion::from_angle_x(self.angy);
+		// TODO: Check if this is the right order to rotate in
+		let rot = rot_x * rot_y;
+		let trans = Transform::new_rot(self.pos, rot, self.size.extend(1.0));
+		trans.mat()
 	}
 }
 impl Entity for Portal {
 	fn render(&self, r: &mut Render, f: &mut Frame) {
-		// n = original normal in loaded mesh
-		let n = vec3(0.0, 0.0, 1.0);
-		let rot = Quaternion::between_vectors(n, self.normal);
-		let trans = Transform::new_rot(self.pos, rot, self.size.extend(1.0));
-		r.draw_mesh(f, MESHID_PORTAL.into(), trans.mat());
+		r.draw_mesh(f, MESHID_PORTAL.into(), self.model_matrix());
 	}
 	fn tick(&mut self, _dt: Flt) {}
 }

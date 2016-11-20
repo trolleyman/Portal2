@@ -28,25 +28,57 @@ pub struct MeshBank {
 	ctx: Rc<Context>,
 	cache: HashMap<MeshID, GameResult<Rc<Mesh>>>,
 	default_mesh: Rc<Mesh>,
+	portal_stencil_mesh: Rc<Mesh>,
 }
 impl MeshBank {
 	pub fn new(ctx: Rc<Context>) -> GameResult<MeshBank> {
-		let buffer = VertexBuffer::new(&ctx, &vec![])
+		let def_buf = VertexBuffer::new(&ctx, &vec![])
 			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
 		
 		let def = Mesh {
 			material: Material::default(),
-			vertices: buffer,
+			vertices: def_buf,
 			indices: None,
 		};
+		
+		// Generate portal mesh
+		let p = MeshBank::generate_portal_stencil_mesh(&ctx)?;
 		
 		let mut mb = MeshBank {
 			ctx: ctx,
 			cache: HashMap::new(),
 			default_mesh: Rc::new(def),
+			portal_stencil_mesh: Rc::new(p),
 		};
 		mb.load_meshes();
 		Ok(mb)
+	}
+	
+	fn generate_portal_stencil_mesh(ctx: &Rc<Context>) -> GameResult<Mesh> {
+		let mut p_mat = Material::default();
+		p_mat.lighting_disabled = true;
+		
+		// 0-1
+		// | |
+		// 3-2
+		let p_verts = vec![
+			Vertex { pos:[-0.5,  0.5, 0.0], uv:[0.0, 0.0], normal:[0.0, 0.0, 1.0] },
+			Vertex { pos:[ 0.5,  0.5, 0.0], uv:[1.0, 0.0], normal:[0.0, 0.0, 1.0] },
+			Vertex { pos:[ 0.5, -0.5, 0.0], uv:[1.0, 1.0], normal:[0.0, 0.0, 1.0] },
+			Vertex { pos:[-0.5, -0.5, 0.0], uv:[0.0, 1.0], normal:[0.0, 0.0, 1.0] },
+		];
+		
+		let p_buf = VertexBuffer::new(ctx, &p_verts)
+			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
+		
+		let p_indices = IndexBuffer::new(ctx, PrimitiveType::TrianglesList, &vec![0u8,1,2, 0,2,3, 0,2,1, 0,3,2])
+			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
+		
+		Ok(Mesh {
+			material: p_mat,
+			vertices: p_buf,
+			indices: Some(box IndexBufferAny::from(p_indices)),
+		})
 	}
 	
 	/// Clears the mesh cache
@@ -57,6 +89,11 @@ impl MeshBank {
 	/// The default mesh
 	pub fn default_mesh(&self) -> Rc<Mesh> {
 		self.default_mesh.clone()
+	}
+	
+	/// Gets the portal stencil mesh
+	pub fn portal_stencil_mesh(&self) -> Rc<Mesh> {
+		self.portal_stencil_mesh.clone()
 	}
 	
 	/// Gets a mesh from the MeshBank.

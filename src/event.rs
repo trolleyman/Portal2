@@ -31,6 +31,8 @@ pub enum InternalEvent {
 	ReloadTextures,
 	/// Reloads the shaders
 	ReloadShaders,
+	/// Rotates the portal in the scene
+	RotatePortal(Vector2<Rad<Flt>>),
 }
 impl InternalEvent {
 	pub fn from_events<I>(state: &mut GameState, it: &mut I) -> Vec<InternalEvent> where I: Iterator<Item=Event> {
@@ -111,6 +113,10 @@ fn key_pressed(es: &mut Vec<InternalEvent>, key: Key) {
 		Key::F6 => { es.push(InternalEvent::ReloadMeshes); },
 		Key::F7 => { es.push(InternalEvent::ReloadTextures); },
 		Key::F8 => { es.push(InternalEvent::ReloadShaders); },
+		Key::J => { es.push(InternalEvent::RotatePortal(vec2(Rad(-1.0), Rad( 0.0)))) }
+		Key::L => { es.push(InternalEvent::RotatePortal(vec2(Rad( 1.0), Rad( 0.0)))) }
+		Key::I => { es.push(InternalEvent::RotatePortal(vec2(Rad( 0.0), Rad( 1.0)))) }
+		Key::K => { es.push(InternalEvent::RotatePortal(vec2(Rad( 0.0), Rad(-1.0)))) }
 		_ => {}
 	}
 }
