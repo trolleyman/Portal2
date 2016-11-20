@@ -9,6 +9,7 @@ pub use self::rotating::{RotatingEntity, RandomRotatingEntity};
 
 mod simple;
 mod rotating;
+mod portal;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Transform {
@@ -74,6 +75,11 @@ impl Transform {
 impl From<Vec3> for Transform {
 	fn from(pos: Vec3) -> Transform {
 		Transform::from_pos(pos)
+	}
+}
+impl From<(Vec3, Vec3)> for Transform {
+	fn from(v: (Vec3, Vec3)) -> Transform {
+		Transform::new(v.0, v.1)
 	}
 }
 

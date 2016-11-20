@@ -17,6 +17,8 @@ pub struct World {
 	light: Light,
 	/// Entities in the world. All are static atm.
 	entities: Vec<Box<Entity>>,
+	/// Location of the two portals in the world
+	portals: [Portal; 2],
 }
 impl World {
 	pub fn new() -> GameResult<World> {
