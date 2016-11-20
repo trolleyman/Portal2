@@ -34,6 +34,9 @@ pub enum InternalEvent {
 }
 impl InternalEvent {
 	pub fn from_events<I>(state: &mut GameState, it: &mut I) -> Vec<InternalEvent> where I: Iterator<Item=Event> {
+		let mut mouse_pos = state.mid_screen;
+		let mut mouse_rel = vec2(0, 0);
+		
 		let mut ret = vec![];
 		for e in it {
 			match e {
@@ -44,19 +47,12 @@ impl InternalEvent {
 					}
 				},
 				Event::MouseMoved(x, y) => {
-					if let Some(mid) = state.mid_screen {
-						if state.focused {
-							let rel = (x - mid.0, y - mid.1);
-							if rel != (0, 0) {
-								let yaw   = Rad(rel.0 as Flt * 0.003);
-								let pitch = Rad(rel.1 as Flt * 0.003);
-								if state.ignore_mouse_frames == 0 {
-									ret.push(InternalEvent::Rotate(vec2(yaw, pitch)));
-									trace!("Mouse Moved: Abs: {:3}, {:3} | Rel: {:3}, {:3} | Rot: {:.3?}, {:.3?}", x, y, rel.0, rel.1, yaw, pitch);
-								} else {
-									trace!("MOUSE IGNORED: Abs: {:3}, {:3} | Rel: {:3}, {:3} | Rot: {:.3?}, {:.3?}", x, y, rel.0, rel.1, yaw, pitch);
-								}
-							}
+					if state.focused {
+						if let Some((prev_x, prev_y)) = mouse_pos {
+							trace!("Mouse Moved: Abs: {}, {}", x, y);
+							let rel = vec2(x - prev_x, y - prev_y);
+							mouse_pos = Some((x, y));
+							mouse_rel += rel;
 						}
 					}
 				},
@@ -69,11 +65,27 @@ impl InternalEvent {
 				_ => {}
 			}
 		}
+		
+		process_mouse_movement(&state, mouse_rel, &mut ret);
+		
 		process_keyboard_state(&state.keyboard_state, &mut ret);
 		if state.ignore_mouse_frames > 0 {
 			state.ignore_mouse_frames -= 1;
 		}
 		ret
+	}
+}
+
+fn process_mouse_movement(state: &GameState, rel: Vector2<i32>, es: &mut Vec<InternalEvent>) {
+	if rel != zero() {
+		let yaw   = Rad(rel.x as Flt * 0.003);
+		let pitch = Rad(rel.y as Flt * 0.003);
+		if state.ignore_mouse_frames == 0 {
+			es.push(InternalEvent::Rotate(vec2(yaw, pitch)));
+			trace!("Mouse Moved: Rel: {:3}, {:3} | Rot: {:.3?}, {:.3?}", rel.x, rel.y, yaw, pitch);
+		} else {
+			trace!("MOUSE IGNORED: Rel: {:3}, {:3} | Rot: {:.3?}, {:.3?}", rel.x, rel.y, yaw, pitch);
+		}
 	}
 }
 

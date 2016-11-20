@@ -229,8 +229,8 @@ impl Mesh {
 			}
 		}
 		debug!("{} vertices, {} tris loaded.", vertices.len(), indices.len() / 3);
-		trace!("Vertices loaded: {:#?}", &vertices);
-		trace!("Indices loaded: {:?}", &indices);
+		//trace!("Vertices loaded: {:#?}", &vertices);
+		//trace!("Indices loaded: {:?}", &indices);
 		
 		// Upload vertex information to OpenGL
 		let v_buffer = VertexBuffer::new(ctx, &vertices)
