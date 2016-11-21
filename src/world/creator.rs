@@ -28,7 +28,7 @@ pub fn example_world() -> World {
 		vec3(0.0, 1.0, 0.0), Rad(0.2), render::MESHID_EARTH.into()));
 	
 	let p1 = entity::Portal::new(vec3(0.0, 1.0, -7.0), Rad(0.0), Rad(0.0), vec2(1.0, 2.0));
-	let p2 = entity::Portal::new(vec3(2.0, 1.0, -5.0), Deg(90.0).into(), Rad(0.0), vec2(1.0, 2.0));
+	let p2 = entity::Portal::new(vec3(2.0, 1.0, -5.0), Deg(270.0).into(), Rad(0.0), vec2(1.0, 2.0));
 	
 	World {
 		camera: cam,
