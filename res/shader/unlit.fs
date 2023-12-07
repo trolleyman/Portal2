@@ -1,3 +1,4 @@
+#version 440
 
 uniform vec3 u_color;
 uniform float u_d;

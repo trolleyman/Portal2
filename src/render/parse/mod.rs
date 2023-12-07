@@ -17,7 +17,7 @@ mod util;
 use vfs;
 
 /// Face is a series of 3 points representing a triangle
-/// 
+///
 /// f 1/2/3 4/5/6 7/8/9 == vec3(vec3(1,2,3), vec3(4,5,6), vec3(7,8,9))
 #[derive(Copy, Clone, Debug)]
 pub struct IndexInfo {
@@ -69,7 +69,7 @@ pub struct ObjFile {
 	/// Vertex normals read
 	pub normals: Vec<Vec3>,
 	/// Faces read
-	/// 
+	///
 	/// Guaranteed to be valid (every index points to a vertex/uv/normal that has been read)
 	pub faces: Vec<Vector3<IndexInfo>>,
 	pub pre_faces: Vec<Vector3<PreIndexInfo>>,
@@ -88,20 +88,20 @@ impl ObjFile {
 			faces: vec![],
 			pre_faces: vec![],
 		};
-		
+
 		parse_file(&mut f)?;
-		
+
 		// Validate pre_faces, so that we know all indices are in bounds
 		f.validate()?;
-		
+
 		// Calculate faces from pre_faces
 		f.calculate_faces();
-		
+
 		Ok(f)
 	}
-	
+
 	/// Calculates the faces from pre_faces.
-	/// 
+	///
 	/// To calculate missing uvs, we are using a flat generating algorithm.
 	fn calculate_faces(&mut self) {
 		trace!("Calculating faces...");
@@ -111,7 +111,7 @@ impl ObjFile {
 		// Reserve space for faces
 		let add = self.pre_faces.len() as isize - self.faces.len() as isize;
 		self.faces.reserve( if add < 0 { 0 } else { add as usize } );
-		
+
 		// Get extents of mesh
 		let mut min = self.vertices[self.pre_faces[0].x.vert as usize];
 		let mut max = self.vertices[self.pre_faces[0].x.vert as usize];
@@ -122,13 +122,13 @@ impl ObjFile {
 				max = vec3(max.x.max(v.x), max.y.max(v.y), max.z.max(v.z));
 			}
 		}
-		
+
 		// Process faces
 		for f in self.pre_faces.iter() {
 			let v0 = self.vertices[f.x.vert as usize];
 			let v1 = self.vertices[f.y.vert as usize];
 			let v2 = self.vertices[f.z.vert as usize];
-			
+
 			// Calculate normals
 			let normals = if f.x.norm.is_none() || f.y.norm.is_none() || f.z.norm.is_none() {
 				let n = (v1 - v0).cross(v2 - v0).normalize();
@@ -142,7 +142,7 @@ impl ObjFile {
 			let calc_prop = |f, min, max| { (f - min) / (min - max) };
 			let calc_uv = |v: Vec3| { vec2(calc_prop(v.x, min.x, max.x), calc_prop(v.z, min.z, max.z)) };
 			let calc_uv_idx = |uvs: &mut Vec<_>, v| { uvs.push(calc_uv(v)); uvs.len() as Idx - 1 };
-			
+
 			let uvs = &mut self.uvs;
 			let uvs = if f.x.uv.is_none() || f.y.uv.is_none() || f.z.uv.is_none() {
 				let uv0 = f.x.uv.unwrap_or_else(|| calc_uv_idx(uvs, v0));
@@ -152,7 +152,7 @@ impl ObjFile {
 			} else {
 				vec3(f.x.uv.unwrap(), f.y.uv.unwrap(), f.z.uv.unwrap())
 			};
-			
+
 			let face = vec3(
 				IndexInfo::new(f.x.vert, uvs.x, normals.x),
 				IndexInfo::new(f.y.vert, uvs.y, normals.y),
@@ -160,7 +160,7 @@ impl ObjFile {
 			self.faces.push(face);
 		}
 	}
-	
+
 	/// Validate the file
 	fn validate(&self) -> GameResult<()> {
 		// Check if material is one of the materials read
@@ -169,7 +169,7 @@ impl ObjFile {
 				return Err(format!("Invalid obj file ({}): Unknown material `{}`", self.rel_path, m));
 			}
 		}
-		
+
 		// Check if all pre_faces are valid
 		for (i, f) in self.pre_faces.iter().enumerate() {
 			fn check_index_info(i: usize, o: &ObjFile, ii: PreIndexInfo) -> GameResult<()> {
@@ -220,7 +220,7 @@ fn parse_file(f: &mut ObjFile) -> GameResult<()> {
 		.map_err(|e| format!("Invalid obj file ({}): {}", e, &f.rel_path))?
 		.read_to_string(&mut s)
 		.map_err(|e| format!("Invalid obj file ({}): {}", e, &f.rel_path))?;
-	
+
 	parse_string(f, s)
 }
 
@@ -228,9 +228,9 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 	// Get an iterator that ignores comments and empty lines
 	let li = s.lines()
 		.map(|l| l.split("#").next().unwrap_or(""));
-	
+
 	let mut state = ParseState::new(String::new(), 0, f.path.clone(), PathBuf::from(&f.rel_path));
-	
+
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
 		if line == "" { continue; }
 		let mut args = line.split_whitespace().peekable();
@@ -242,10 +242,10 @@ fn parse_string(f: &mut ObjFile, s: String) -> GameResult<()> {
 			"mtllib" => {
 				let mtl_rel_path = args.next()
 					.ok_or_else(|| state.to_error())?;
-				
+
 				let mtl_rel_exe_path = util::remove_parents(&Path::new(&f.rel_path).join("..").join(&mtl_rel_path));
 				trace!("mtl_rel_exe_path: {}", mtl_rel_exe_path.display());
-				
+
 				// Get the path of the mtl lib, as it is relative to the current file.
 				let mut mtl_path = f.path.clone();
 				mtl_path.pop();
@@ -334,11 +334,11 @@ fn parse_mtl_string(f: &mut ObjFile, path: &Path, rel_path: &Path, s: &str) -> G
 	// Get lines that filter out comments & empty lines
 	let li = s.lines()
 		.map(|l| l.split("#").next().unwrap_or(""));
-	
+
 	let mut current_mat_name = None;
 	let mut current_mat = Material::default();
 	let mut state = ParseState::new(String::new(), 0, path.to_path_buf(), rel_path.to_path_buf());
-	
+
 	for (lno, line) in li.enumerate().map(|(lno, l)| (lno + 1, l)) {
 		if line == "" { continue; }
 		let mut args = line.split_whitespace().peekable();
@@ -384,7 +384,7 @@ fn parse_texture_args<'a, I>(state: &ParseState, args: &mut Peekable<I>) -> Game
 	if !a.starts_with('-') { // `a` is a texture ID.
 		// Ensure that there are no more args
 		if args.peek().is_some() { return Err(state.to_error()); }
-		
+
 		// Parse `a` as a texture ID
 		let id = parse_texture_path(state, &a);
 		Ok((id, TextureOptions::default()))
@@ -393,7 +393,7 @@ fn parse_texture_args<'a, I>(state: &ParseState, args: &mut Peekable<I>) -> Game
 			"-s" => { // "-s u [v] [w]" -- uv scale option
 				let u = util::parse1(state, args)?;
 				let v = util::parse1_opt(args).unwrap_or(1.0);
-				let _ = util::parse1_opt(args).unwrap_or(1.0): Flt; // Ignore the 3D option
+				let _: Flt = util::parse1_opt(args).unwrap_or(1.0); // Ignore the 3D option
 				let (id, mut opt) = parse_texture_args(state, args)?; // Recurse on other arguments
 				opt.uv_scale = vec2(u, v);
 				Ok((id, opt))
@@ -424,22 +424,22 @@ fn parse_texture_path(state: &ParseState, id: &str) -> TextureID {
 pub fn load_shader_program(ctx: &Rc<Context>, rel_base: &str) -> GameResult<Program> {
 	// TODO: Handle more shader types
 	let base = vfs::canonicalize_exe(rel_base);
-	
+
 	// Load source of shaders
 	let mut vs_src = String::new();
 	File::open(base.with_extension("vs"))
 		.map_err(|e| format!("Could not open file {}.vs: {}", base.display(), e))?
 		.read_to_string(&mut vs_src)
 		.map_err(|e| format!("Could not read file {}.vs: {}", base.display(), e))?;
-	
+
 	let mut fs_src = String::new();
 	File::open(base.with_extension("fs"))
 		.map_err(|e| format!("Could not open file {}.fs: {}", base.display(), e))?
 		.read_to_string(&mut fs_src)
 		.map_err(|e| format!("Could not read file {}.fs: {}", base.display(), e))?;
-	
+
 	let prog = Program::from_source(ctx, &vs_src, &fs_src, None)
 		.map_err(|e| format!("Could not parse shader {}\n{}", base.display(), e))?;
-	
+
 	Ok(prog)
 }

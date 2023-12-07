@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-#![feature(box_syntax, type_ascription, slice_patterns)]
+#![feature(type_ascription, slice_patterns)]
 extern crate cgmath as cg;
 #[macro_use]
 extern crate glium;
@@ -27,7 +27,7 @@ use game::Game;
 
 pub fn parse_log_level() -> Option<simplelog::LogLevelFilter> {
 	use std::ascii::AsciiExt;
-	
+
 	let var = std::env::var("PORTAL_LOG").unwrap_or(String::new());
 	let var = var.trim();
 	     if var.eq_ignore_ascii_case("off"  ) { Some(simplelog::LogLevelFilter::Off  ) }
@@ -46,12 +46,12 @@ pub fn main() {
 		target: Some(simplelog::LogLevel::Error),
 		location: Some(simplelog::LogLevel::Debug),
 	};
-	
+
 	simplelog::TermLogger::init(parse_log_level().unwrap_or(simplelog::LogLevelFilter::Info), config)
 		.map_err(|e| writeln!(io::stderr(), "Error: Logger could not be initialized: {}", e).ok())
 		.ok();
 	info!("Logger initialized.");
-	
+
 	match run().into() {
 		Err(e) => {
 			error!("{}", e);

@@ -1,3 +1,4 @@
+#version 440
 
 uniform vec3 u_Ka;
 uniform vec3 u_Kd;
@@ -22,7 +23,7 @@ void main() {
 	// To get the brightness, we calculate angle of incidence.
 	float diffuse_brightness = dot(t_normal, l) / (length(l) * length(t_normal));
 	diffuse_brightness = clamp(diffuse_brightness, 0.0, 1.0);
-	
+
 	vec4 ambient = vec4(u_Ka, u_d) * texture2D(u_map_Ka, t_uv_Ka) * u_light_ambient;
 	vec4 diffuse = vec4(u_Kd, u_d) * texture2D(u_map_Kd, t_uv_Kd) * u_light_diffuse * diffuse_brightness;
 	out_col = ambient + diffuse;

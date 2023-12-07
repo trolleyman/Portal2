@@ -34,16 +34,16 @@ impl MeshBank {
 	pub fn new(ctx: Rc<Context>) -> GameResult<MeshBank> {
 		let def_buf = VertexBuffer::new(&ctx, &vec![])
 			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
-		
+
 		let def = Mesh {
 			material: Material::default(),
 			vertices: def_buf,
 			indices: None,
 		};
-		
+
 		// Generate portal mesh
 		let p = MeshBank::generate_portal_stencil_mesh(&ctx)?;
-		
+
 		let mut mb = MeshBank {
 			ctx: ctx,
 			cache: HashMap::new(),
@@ -53,11 +53,11 @@ impl MeshBank {
 		mb.load_meshes();
 		Ok(mb)
 	}
-	
+
 	fn generate_portal_stencil_mesh(ctx: &Rc<Context>) -> GameResult<Mesh> {
 		let mut p_mat = Material::default();
 		p_mat.lighting_disabled = true;
-		
+
 		// 0-1
 		// | |
 		// 3-2
@@ -67,43 +67,43 @@ impl MeshBank {
 			Vertex { pos:[ 0.5, -0.5, 0.0], uv:[1.0, 1.0], normal:[0.0, 0.0, 1.0] },
 			Vertex { pos:[-0.5, -0.5, 0.0], uv:[0.0, 1.0], normal:[0.0, 0.0, 1.0] },
 		];
-		
+
 		let p_buf = VertexBuffer::new(ctx, &p_verts)
 			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
-		
+
 		let p_indices = IndexBuffer::new(ctx, PrimitiveType::TrianglesList, &vec![0u8,1,2, 0,2,3, 0,2,1, 0,3,2])
 			.map_err(|e| format!("Could not initialize MeshBank: OpenGL buffer creation error: {}", e))?;
-		
+
 		Ok(Mesh {
 			material: p_mat,
 			vertices: p_buf,
-			indices: Some(box IndexBufferAny::from(p_indices)),
+			indices: Some(Box::new(IndexBufferAny::from(p_indices))),
 		})
 	}
-	
+
 	/// Clears the mesh cache
 	pub fn clear_cache(&mut self) {
 		self.cache.clear();
 	}
-	
+
 	/// The default mesh
 	pub fn default_mesh(&self) -> Rc<Mesh> {
 		self.default_mesh.clone()
 	}
-	
+
 	/// Gets the portal stencil mesh
 	pub fn portal_stencil_mesh(&self) -> Rc<Mesh> {
 		self.portal_stencil_mesh.clone()
 	}
-	
+
 	/// Gets a mesh from the MeshBank.
-	/// 
+	///
 	/// If there was an error, returns a default mesh (No vertices)
 	pub fn get_mesh_or_default(&mut self, id: MeshID) -> Rc<Mesh> {
 		self.get_mesh(id.clone())
 			.unwrap_or(self.default_mesh())
 	}
-	
+
 	/// Gets a mesh from the MeshBank
 	pub fn get_mesh(&mut self, id: MeshID) -> GameResult<Rc<Mesh>> {
 		// Normalize id first
@@ -126,17 +126,17 @@ impl MeshBank {
 		}
 		self.cache.get(&id).unwrap().clone()
 	}
-	
+
 	/// Loads a mesh into the MeshBank
 	pub fn load_mesh(&mut self, id: MeshID) -> GameResult<()> {
 		self.get_mesh(id).map(|_| ())
 	}
-	
+
 	/// Loads all of the meshes in the MESH_DIR directory
 	pub fn load_meshes(&mut self) {
 		use std::fs;
 		use vfs;
-		
+
 		// Iterate over files in MESH_DIR
 		let dir = vfs::canonicalize_exe(MESH_DIR);
 		let it = match fs::read_dir(&dir) {
@@ -146,7 +146,7 @@ impl MeshBank {
 				return;
 			}
 		};
-		
+
 		// TODO: Clean up this code - ugly but works for now
 		for file in it {
 			match file {
@@ -174,7 +174,7 @@ impl Vertex {
 		unsafe {
 			use std::mem;
 			use std::slice;
-			
+
 			let ptr = mem::transmute::<&Vertex, *const u8>(self);
 			let s = slice::from_raw_parts(ptr, mem::size_of::<Vertex>());
 			s
@@ -231,22 +231,22 @@ impl Mesh {
 			&None => IndicesSource::NoIndices{ primitives: PrimitiveType::TrianglesList },
 		}
 	}
-	
+
 	pub fn from_file(ctx: &Rc<Context>, rel_path: &str) -> GameResult<Mesh> {
 		use render::parse::ObjFile;
-		
+
 		let file = ObjFile::new(rel_path.to_string())
 			.map_err(|e| format!("Invalid mesh: {}", e))?;
-		
+
 		// Get material
 		let material = file.material.clone()
 		.and_then(|mat_name| file.materials.get(&mat_name).map(Material::clone))
 		.unwrap_or_else(Material::default);
-		
+
 		let mut vertices = vec![];
 		let mut vertices_map: HashMap<Vertex, u32> = HashMap::new();
 		let mut indices: Vec<u32> = vec![];
-		
+
 		// Change from indices to vertices
 		for face in file.faces.iter() {
 			for vertex in [face.x, face.y, face.z].into_iter() {
@@ -269,11 +269,11 @@ impl Mesh {
 		debug!("{} vertices, {} tris loaded.", vertices.len(), indices.len() / 3);
 		//trace!("Vertices loaded: {:#?}", &vertices);
 		//trace!("Indices loaded: {:?}", &indices);
-		
+
 		// Upload vertex information to OpenGL
 		let v_buffer = VertexBuffer::new(ctx, &vertices)
 			.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
-		
+
 		// Upload index information to OpenGL
 		// Minimize the size of the index array by choosing shorter ints
 		let i_buffer = if vertices.len() < u8::max_value() as usize {
@@ -297,13 +297,13 @@ impl Mesh {
 				.map_err(|e| format!("Invalid mesh ({}): OpenGL buffer creation error: {}", rel_path, e))?;
 			IndexBufferAny::from(buf)
 		};
-		
+
 		trace!("Material loaded: {:?}", &material);
-		
+
 		Ok(Mesh {
 			material: material,
 			vertices: v_buffer,
-			indices: Some(box i_buffer),
+			indices: Some(Box::new(i_buffer)),
 		})
 	}
 }
